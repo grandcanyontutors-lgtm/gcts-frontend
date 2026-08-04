@@ -10,13 +10,12 @@ body {
   overflow-x: hidden;
 }
 
+/* Text and background colours are owned by the MUI theme (via CssBaseline) so
+   they stay correct in both light and dark mode. Hardcoding them here used to
+   flip body text to white whenever the OS was in dark mode, which could render
+   text — including what users typed into inputs — white on a white surface. */
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      135deg,
-      rgba(255, 215, 0, 0.08) 0%,
-      rgba(255, 193, 7, 0.12) 100%
-    );
+  background-color: #faf9fc; /* brand paper */
 }
 
 a {

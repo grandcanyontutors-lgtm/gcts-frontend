@@ -9,11 +9,16 @@ import {
   Step,
   StepLabel,
   Button,
-  Paper,
   Alert,
   CircularProgress,
 } from '@mui/material';
+import {
+  VerifiedUserOutlined,
+  ReplayOutlined,
+  LockOutlined,
+} from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
+import { brand, cardSx, primaryButtonSx, outlineButtonSx, Mark, PageShell } from '@/lib/brand';
 import { useAuth } from '@/contexts/AuthContext';
 import { PrivateRoute } from '@/components/auth/PrivateRoute';
 import { OrderDetailsStep } from '@/components/orders/OrderDetailsStep';
@@ -295,86 +300,179 @@ function PlaceOrderPage() {
     }
   };
 
+  const trustItems = [
+    { icon: <VerifiedUserOutlined sx={{ fontSize: 18 }} />, label: 'Reviewed before delivery' },
+    { icon: <ReplayOutlined sx={{ fontSize: 18 }} />, label: '2 free revisions' },
+    { icon: <LockOutlined sx={{ fontSize: 18 }} />, label: 'Confidential' },
+  ];
+
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography variant="h3" component="h1" gutterBottom align="center">
-        Place New Order
-      </Typography>
-      
-      <Typography variant="h6" color="text.secondary" align="center" sx={{ mb: 4 }}>
-        Follow the steps below to place your academic order
-      </Typography>
-
-      <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
-        <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
-          {steps.map((label) => (
-            <Step key={label}>
-              <StepLabel>{label}</StepLabel>
-            </Step>
-          ))}
-        </Stepper>
-
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            Failed to create order. Please try again.
-          </Alert>
-        )}
-
-        {uploadWarning && (
-          <Alert
-            severity="warning"
-            sx={{ mb: 3 }}
-            action={
-              <Button
-                color="inherit"
-                size="small"
-                onClick={() => router.push(`/orders/${uploadWarning.orderId}`)}
-              >
-                Go to order
-              </Button>
-            }
+    <PageShell>
+      <Box
+        sx={{
+          background: `radial-gradient(1100px 500px at 80% -20%, ${brand.lavender} 0%, ${brand.paper} 60%)`,
+          borderBottom: `1px solid ${brand.line}`,
+          py: { xs: 5, md: 7 },
+        }}
+      >
+        <Container maxWidth="md">
+          <Typography
+            component="h1"
+            sx={{
+              fontSize: { xs: 30, md: 40 },
+              fontWeight: 800,
+              letterSpacing: '-0.02em',
+              lineHeight: 1.1,
+              color: brand.ink,
+            }}
           >
-            Your order was created, but {uploadWarning.failed.length} file
-            {uploadWarning.failed.length > 1 ? 's' : ''} failed to upload
-            ({uploadWarning.failed.join(', ')}). You can add them from the order page.
-          </Alert>
-        )}
+            <Mark>Place your order</Mark>
+          </Typography>
+          <Typography
+            sx={{
+              mt: 2,
+              fontSize: { xs: 15, md: 17 },
+              fontWeight: 500,
+              color: brand.body,
+              lineHeight: 1.6,
+            }}
+          >
+            No payment until we confirm your quote · 2 free revisions
+          </Typography>
+        </Container>
+      </Box>
 
-        <Box sx={{ minHeight: 400 }}>
-          {renderStepContent(activeStep)}
+      <Container maxWidth="md" sx={{ py: { xs: 4, md: 6 } }}>
+        {/* Trust strip */}
+        <Box
+          sx={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: { xs: 1.5, sm: 3 },
+            justifyContent: 'center',
+            mb: 3,
+          }}
+        >
+          {trustItems.map((item) => (
+            <Box
+              key={item.label}
+              sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 0.75,
+                color: brand.body,
+                fontWeight: 600,
+                fontSize: 14,
+              }}
+            >
+              <Box sx={{ color: brand.purple, display: 'inline-flex' }}>{item.icon}</Box>
+              {item.label}
+            </Box>
+          ))}
         </Box>
 
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
-          <Button
-            disabled={activeStep === 0}
-            onClick={handleBack}
-            variant="outlined"
+        <Box sx={{ ...cardSx, p: { xs: 2.5, md: 4 }, '&:hover': { transform: 'none' } }}>
+          <Stepper
+            activeStep={activeStep}
+            alternativeLabel
+            sx={{
+              mb: 4,
+              '& .MuiStepConnector-line': { borderColor: brand.line },
+              '& .MuiStepLabel-label': {
+                fontWeight: 600,
+                color: brand.body,
+                fontSize: { xs: 12, sm: 14 },
+                '&.Mui-active': { color: brand.ink, fontWeight: 700 },
+                '&.Mui-completed': { color: brand.ink },
+              },
+              '& .MuiStepIcon-root': {
+                color: brand.line,
+                '&.Mui-active': { color: brand.purple },
+                '&.Mui-completed': { color: brand.purpleDeep },
+              },
+              '& .MuiStepIcon-text': { fontWeight: 700 },
+            }}
           >
-            Back
-          </Button>
-          
-          <Box>
-            {activeStep === steps.length - 1 ? (
-              <Button
-                variant="contained"
-                onClick={handleSubmit}
-                disabled={isLoading || isUploading}
-                startIcon={isLoading || isUploading ? <CircularProgress size={20} /> : null}
-              >
-                {isLoading ? 'Creating Order...' : isUploading ? 'Uploading Files...' : 'Place Order'}
-              </Button>
-            ) : (
-              <Button
-                variant="contained"
-                onClick={handleNext}
-              >
-                Next
-              </Button>
-            )}
+            {steps.map((label) => (
+              <Step key={label}>
+                <StepLabel>{label}</StepLabel>
+              </Step>
+            ))}
+          </Stepper>
+
+          {error && (
+            <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
+              Failed to create order. Please try again.
+            </Alert>
+          )}
+
+          {uploadWarning && (
+            <Alert
+              severity="warning"
+              sx={{ mb: 3, borderRadius: 2 }}
+              action={
+                <Button
+                  color="inherit"
+                  size="small"
+                  onClick={() => router.push(`/orders/${uploadWarning.orderId}`)}
+                >
+                  Go to order
+                </Button>
+              }
+            >
+              Your order was created, but {uploadWarning.failed.length} file
+              {uploadWarning.failed.length > 1 ? 's' : ''} failed to upload
+              ({uploadWarning.failed.join(', ')}). You can add them from the order page.
+            </Alert>
+          )}
+
+          <Box sx={{ minHeight: 400 }}>
+            {renderStepContent(activeStep)}
+          </Box>
+
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              mt: 4,
+              pt: 3,
+              borderTop: `1px solid ${brand.line}`,
+            }}
+          >
+            <Button
+              disabled={activeStep === 0}
+              onClick={handleBack}
+              variant="outlined"
+              sx={outlineButtonSx}
+            >
+              Back
+            </Button>
+
+            <Box>
+              {activeStep === steps.length - 1 ? (
+                <Button
+                  variant="contained"
+                  onClick={handleSubmit}
+                  disabled={isLoading || isUploading}
+                  startIcon={isLoading || isUploading ? <CircularProgress size={20} color="inherit" /> : null}
+                  sx={primaryButtonSx}
+                >
+                  {isLoading ? 'Creating Order...' : isUploading ? 'Uploading Files...' : 'Place Order'}
+                </Button>
+              ) : (
+                <Button
+                  variant="contained"
+                  onClick={handleNext}
+                  sx={primaryButtonSx}
+                >
+                  Next
+                </Button>
+              )}
+            </Box>
           </Box>
         </Box>
-      </Paper>
-    </Container>
+      </Container>
+    </PageShell>
   );
 }
 

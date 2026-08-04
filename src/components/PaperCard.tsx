@@ -6,6 +6,7 @@ import {
   Button
 } from '@mui/material';
 import Link from 'next/link';
+import { brand, cardSx, outlineButtonSx } from '@/lib/brand';
 
 export interface SamplePaper {
   id?: string;
@@ -26,22 +27,21 @@ interface PaperCardProps {
 export function PaperCard({ paper, excerptLines = 5 }: PaperCardProps) {
   return (
     <Paper
-      elevation={2}
+      elevation={0}
       sx={{
+        ...cardSx,
         p: 3,
         height: '100%',
-        borderRadius: 3,
-        transition: 'all 0.3s ease',
         display: 'flex',
         flexDirection: 'column',
-        '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow: 6
-        }
       }}
     >
       <Box sx={{ mb: 2 }}>
-        <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', lineHeight: 1.3 }}>
+        <Typography
+          variant="h6"
+          gutterBottom
+          sx={{ fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.3, color: brand.ink }}
+        >
           {paper.title}
         </Typography>
       </Box>
@@ -51,25 +51,26 @@ export function PaperCard({ paper, excerptLines = 5 }: PaperCardProps) {
           label={paper.subject}
           size="small"
           sx={{
-            backgroundColor: 'primary.main',
-            color: 'white',
-            fontWeight: 'medium'
+            backgroundColor: brand.purple,
+            color: '#fff',
+            fontWeight: 700,
           }}
         />
         <Chip
           label={paper.type}
           size="small"
           variant="outlined"
-          color="primary"
+          sx={{ color: brand.ink, fontWeight: 600, borderColor: 'rgba(156,39,176,0.4)' }}
         />
       </Box>
 
       <Typography
         variant="body2"
-        color="text.secondary"
         sx={{
           mb: 3,
           lineHeight: 1.6,
+          color: brand.body,
+          fontWeight: 500,
           display: '-webkit-box',
           WebkitLineClamp: excerptLines,
           WebkitBoxOrient: 'vertical',
@@ -85,12 +86,11 @@ export function PaperCard({ paper, excerptLines = 5 }: PaperCardProps) {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        borderTop: 1,
-        borderColor: 'divider',
+        borderTop: `1px solid ${brand.line}`,
         pt: 2,
         mt: 'auto'
       }}>
-        <Typography variant="caption" color="text.secondary">
+        <Typography variant="caption" sx={{ color: brand.body, fontWeight: 600 }}>
           {paper.level} • {paper.pages} pages
         </Typography>
         <Button
@@ -98,7 +98,7 @@ export function PaperCard({ paper, excerptLines = 5 }: PaperCardProps) {
           variant="outlined"
           component={Link}
           href={`/papers/${paper.slug || paper.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`}
-          sx={{ fontSize: '0.75rem' }}
+          sx={{ ...outlineButtonSx, fontSize: '0.75rem' }}
         >
           View Sample
         </Button>

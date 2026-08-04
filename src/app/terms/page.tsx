@@ -1,9 +1,9 @@
 'use client';
 
-import { Container, Typography, Box, Paper, Divider, Link as MuiLink } from '@mui/material';
+import { Container, Typography, Box, Divider, Link as MuiLink } from '@mui/material';
 import Link from 'next/link';
+import { brand, cardSx, PageShell, PageHero, Mark } from '@/lib/brand';
 
-const ACCENT = '#8C59D9';
 const LAST_UPDATED = 'May 23, 2026';
 
 const sections = [
@@ -98,47 +98,42 @@ const sections = [
 
 export default function TermsPage() {
   return (
-    <Container maxWidth="md" sx={{ py: 8 }}>
-      {/* Header */}
-      <Box sx={{ mb: 5 }}>
-        <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 'bold' }}>
-          Terms of Service
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Last updated: {LAST_UPDATED}
-        </Typography>
-        <Divider sx={{ mt: 2, maxWidth: 80, borderColor: ACCENT, borderWidth: 2 }} />
-      </Box>
+    <PageShell>
+      <PageHero
+        eyebrow={`Last updated: ${LAST_UPDATED}`}
+        title={
+          <>
+            Terms of <Mark>service</Mark>
+          </>
+        }
+        subtitle="These Terms govern your use of Grand Canyon Tutoring Services. Please read them carefully — they explain your rights and responsibilities, and how we keep GCTS a safe portal to academic understanding."
+      />
 
-      <Typography variant="body1" color="text.secondary" sx={{ mb: 4, fontSize: '1.05rem' }}>
-        These Terms govern your use of Grand Canyon Tutoring Services. Please read them
-        carefully. They explain your rights and responsibilities, and how we work to keep
-        GCTS a safe portal to academic understanding.
-      </Typography>
-
-      <Paper elevation={1} sx={{ p: { xs: 3, md: 5 }, borderRadius: 3 }}>
-        {sections.map((section) => (
-          <Box key={section.title} sx={{ mb: 4 }}>
-            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1.5 }}>
-              {section.title}
-            </Typography>
-            {section.body.map((para, i) => (
-              <Typography key={i} variant="body2" color="text.secondary" sx={{ mb: 1.5, lineHeight: 1.8 }}>
-                {para}
+      <Container maxWidth="md" sx={{ py: { xs: 8, md: 12 } }}>
+        <Box sx={{ ...cardSx, p: { xs: 3.5, md: 6 }, '&:hover': {} }}>
+          {sections.map((section) => (
+            <Box key={section.title} sx={{ mb: 4 }}>
+              <Typography sx={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em', color: brand.ink, mb: 1.5 }}>
+                {section.title}
               </Typography>
-            ))}
-          </Box>
-        ))}
+              {section.body.map((para, i) => (
+                <Typography key={i} sx={{ fontSize: 15.5, fontWeight: 500, color: brand.body, mb: 1.5, lineHeight: 1.8 }}>
+                  {para}
+                </Typography>
+              ))}
+            </Box>
+          ))}
 
-        <Divider sx={{ my: 3 }} />
-        <Typography variant="body2" color="text.secondary">
-          Questions about these Terms? Visit our{' '}
-          <MuiLink component={Link} href="/contact" sx={{ color: ACCENT, fontWeight: 600 }}>
-            Contact page
-          </MuiLink>
-          .
-        </Typography>
-      </Paper>
-    </Container>
+          <Divider sx={{ my: 3, borderColor: brand.line }} />
+          <Typography sx={{ fontSize: 15.5, fontWeight: 500, color: brand.body }}>
+            Questions about these Terms? Visit our{' '}
+            <MuiLink component={Link} href="/contact" sx={{ color: brand.purple, fontWeight: 700 }}>
+              Contact page
+            </MuiLink>
+            .
+          </Typography>
+        </Box>
+      </Container>
+    </PageShell>
   );
 }

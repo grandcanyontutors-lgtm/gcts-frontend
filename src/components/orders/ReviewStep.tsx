@@ -28,6 +28,24 @@ import {
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import type { OrderFormData } from '@/app/order/place/page';
+import { brand } from '@/lib/brand';
+
+const reviewCardSx = {
+  bgcolor: '#fff',
+  borderRadius: 3,
+  border: `1px solid ${brand.line}`,
+  boxShadow: '0 12px 28px -22px rgba(26,21,38,0.35)',
+  height: '100%',
+};
+
+const cardHeadingSx = {
+  display: 'flex',
+  alignItems: 'center',
+  fontWeight: 700,
+  color: brand.ink,
+  mb: 1,
+  '& svg': { color: brand.purple },
+};
 
 interface ReviewStepProps {
   data: OrderFormData;
@@ -65,16 +83,16 @@ export function ReviewStep({ data, errors }: ReviewStepProps) {
   };
 
   return (
-    <Box sx={{ p: 2 }}>
-      <Typography variant="h5" gutterBottom>
+    <Box sx={{ p: { xs: 0, sm: 1 } }}>
+      <Typography gutterBottom sx={{ fontSize: { xs: 22, md: 26 }, fontWeight: 800, letterSpacing: '-0.02em', color: brand.ink, lineHeight: 1.2 }}>
         Review Your Order
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+      <Typography variant="body2" sx={{ mb: 3, fontSize: 15, fontWeight: 500, color: brand.body }}>
         Please review all details before placing your order
       </Typography>
 
       {Object.keys(errors).length > 0 && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
           <Typography variant="body2">
             Please fix the following errors before proceeding:
           </Typography>
@@ -89,9 +107,9 @@ export function ReviewStep({ data, errors }: ReviewStepProps) {
       <Grid container spacing={3}>
         {/* Order Details */}
         <Grid item xs={12} md={6}>
-          <Card>
+          <Card elevation={0} sx={reviewCardSx}>
             <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+              <Typography gutterBottom sx={cardHeadingSx}>
                 <Assignment sx={{ mr: 1 }} />
                 Order Details
               </Typography>
@@ -151,9 +169,9 @@ export function ReviewStep({ data, errors }: ReviewStepProps) {
 
         {/* Requirements */}
         <Grid item xs={12} md={6}>
-          <Card>
+          <Card elevation={0} sx={reviewCardSx}>
             <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+              <Typography gutterBottom sx={cardHeadingSx}>
                 <Description sx={{ mr: 1 }} />
                 Requirements
               </Typography>
@@ -192,13 +210,13 @@ export function ReviewStep({ data, errors }: ReviewStepProps) {
 
         {/* Detailed Instructions */}
         <Grid item xs={12}>
-          <Card>
+          <Card elevation={0} sx={reviewCardSx}>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
+              <Typography gutterBottom sx={{ fontWeight: 700, color: brand.ink }}>
                 Detailed Instructions
               </Typography>
-              <Paper sx={{ p: 2, bgcolor: 'background.default', maxHeight: 200, overflow: 'auto' }}>
-                <Typography variant="body2" style={{ whiteSpace: 'pre-wrap' }}>
+              <Paper elevation={0} sx={{ p: 2, bgcolor: brand.paper, border: `1px solid ${brand.line}`, borderRadius: 2, maxHeight: 200, overflow: 'auto' }}>
+                <Typography variant="body2" sx={{ color: brand.body }} style={{ whiteSpace: 'pre-wrap' }}>
                   {data.instructions || 'No detailed instructions provided'}
                 </Typography>
               </Paper>
@@ -209,9 +227,9 @@ export function ReviewStep({ data, errors }: ReviewStepProps) {
         {/* Uploaded Files */}
         {data.files.length > 0 && (
           <Grid item xs={12}>
-            <Card>
+            <Card elevation={0} sx={reviewCardSx}>
               <CardContent>
-                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+                <Typography gutterBottom sx={cardHeadingSx}>
                   <AttachFile sx={{ mr: 1 }} />
                   Uploaded Files ({data.files.length})
                 </Typography>
@@ -238,14 +256,14 @@ export function ReviewStep({ data, errors }: ReviewStepProps) {
 
         {/* Budget & Payment Summary */}
         <Grid item xs={12}>
-          <Card>
+          <Card elevation={0} sx={reviewCardSx}>
             <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+              <Typography gutterBottom sx={cardHeadingSx}>
                 <Payment sx={{ mr: 1 }} />
                 Budget & Payment Information
               </Typography>
-              
-              <Alert severity="warning" sx={{ mb: 2 }}>
+
+              <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>
                 <Typography variant="body2">
                   <strong>Important:</strong> No payment will be processed now. This is your estimated cost based on your budget.
                   You'll receive payment instructions after our team reviews your order.
@@ -265,9 +283,9 @@ export function ReviewStep({ data, errors }: ReviewStepProps) {
                   <Typography>${serviceFee}</Typography>
                 </Box>
                 <Divider sx={{ my: 1 }} />
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                  <Typography variant="h6">Estimated Total:</Typography>
-                  <Typography variant="h6" color="primary">${totalAmount}</Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography sx={{ fontWeight: 800, color: brand.ink }}>Estimated Total:</Typography>
+                  <Typography sx={{ fontSize: 24, fontWeight: 800, letterSpacing: '-0.02em', color: brand.purple }}>${totalAmount}</Typography>
                 </Box>
                 <Typography variant="caption" color="warning.main" sx={{ mt: 1, display: 'block', fontStyle: 'italic' }}>
                   * Final cost may vary based on order complexity and requirements
@@ -284,7 +302,7 @@ export function ReviewStep({ data, errors }: ReviewStepProps) {
 
         {/* Final Notice */}
         <Grid item xs={12}>
-          <Alert severity="info" icon={<Info />}>
+          <Alert severity="info" icon={<Info />} sx={{ borderRadius: 2 }}>
             <Typography variant="body2">
               <strong>What happens next?</strong><br />
               After placing your order, here's the process:
@@ -301,14 +319,14 @@ export function ReviewStep({ data, errors }: ReviewStepProps) {
 
         {/* Terms Agreement */}
         <Grid item xs={12}>
-          <Paper sx={{ p: 2, bgcolor: 'background.default' }}>
-            <Typography variant="body2" color="text.secondary" align="center">
+          <Paper elevation={0} sx={{ p: 2.5, bgcolor: brand.lavender, border: `1px solid ${brand.line}`, borderRadius: 3 }}>
+            <Typography variant="body2" align="center" sx={{ color: brand.body, fontWeight: 500 }}>
               By placing this order, you agree to our{' '}
-              <Button variant="text" size="small" sx={{ p: 0, minWidth: 'auto' }}>
+              <Button variant="text" size="small" sx={{ p: 0, minWidth: 'auto', color: brand.purple, fontWeight: 700 }}>
                 Terms of Service
               </Button>
               {' '}and{' '}
-              <Button variant="text" size="small" sx={{ p: 0, minWidth: 'auto' }}>
+              <Button variant="text" size="small" sx={{ p: 0, minWidth: 'auto', color: brand.purple, fontWeight: 700 }}>
                 Privacy Policy
               </Button>
               . You confirm that the information provided is accurate and that you have the right to submit this work.

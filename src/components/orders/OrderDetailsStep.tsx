@@ -19,6 +19,22 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { useState, useEffect } from 'react';
 import type { OrderFormData } from '@/app/order/place/page';
 import { useDropdownOptions } from '@/hooks/useDropdownOptions';
+import { brand } from '@/lib/brand';
+
+const stepTitleSx = {
+  fontSize: { xs: 22, md: 26 },
+  fontWeight: 800,
+  letterSpacing: '-0.02em',
+  color: brand.ink,
+  lineHeight: 1.2,
+};
+
+const stepSubtitleSx = {
+  mb: 3,
+  fontSize: 15,
+  fontWeight: 500,
+  color: brand.body,
+};
 
 interface OrderDetailsStepProps {
   data: OrderFormData;
@@ -112,11 +128,11 @@ export function OrderDetailsStep({ data, errors, onChange }: OrderDetailsStepPro
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Box sx={{ p: 2 }}>
-        <Typography variant="h5" gutterBottom>
+      <Box sx={{ p: { xs: 0, sm: 1 } }}>
+        <Typography gutterBottom sx={stepTitleSx}>
           Order Details
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+        <Typography sx={stepSubtitleSx}>
           Provide basic information about your order
         </Typography>
 
@@ -219,7 +235,7 @@ export function OrderDetailsStep({ data, errors, onChange }: OrderDetailsStepPro
           {/* Pages */}
           <Grid item xs={12} md={6}>
             <Box sx={{ px: 2 }}>
-              <Typography gutterBottom>
+              <Typography gutterBottom sx={{ fontWeight: 600, color: brand.ink }}>
                 Number of Pages: {data.pages}
               </Typography>
               <Slider
@@ -235,6 +251,7 @@ export function OrderDetailsStep({ data, errors, onChange }: OrderDetailsStepPro
                   { value: 50, label: '50' },
                 ]}
                 valueLabelDisplay="auto"
+                sx={{ color: brand.purple }}
               />
               {errors.pages && (
                 <Typography color="error" variant="caption">
@@ -263,21 +280,20 @@ export function OrderDetailsStep({ data, errors, onChange }: OrderDetailsStepPro
 
           {/* Estimated Price */}
           <Grid item xs={12}>
-            <Box sx={{ 
-              bgcolor: 'background.paper', 
-              border: 1, 
-              borderColor: 'divider',
-              borderRadius: 1,
-              p: 2,
-              mt: 2 
+            <Box sx={{
+              background: `linear-gradient(135deg, ${brand.lavender} 0%, ${brand.paper} 100%)`,
+              border: `1px solid ${brand.line}`,
+              borderRadius: 3,
+              p: 3,
+              mt: 2,
             }}>
-              <Typography variant="h6" gutterBottom>
+              <Typography sx={{ fontWeight: 700, color: brand.ink, mb: 0.5 }}>
                 Estimated Price
               </Typography>
-              <Typography variant="h4" color="primary">
+              <Typography sx={{ fontSize: 40, fontWeight: 800, letterSpacing: '-0.02em', color: brand.purple, lineHeight: 1.1 }}>
                 ${calculateEstimatedPrice()}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{ mt: 1, color: brand.body, fontWeight: 500 }}>
                 Base: ${15}/page × {data.pages} pages × Urgency multiplier × Academic level multiplier
               </Typography>
             </Box>

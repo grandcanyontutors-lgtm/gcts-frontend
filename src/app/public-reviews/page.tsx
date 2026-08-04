@@ -26,6 +26,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { APIClient, Review, ReviewsResponse } from '@/lib/api';
 import { ReviewCard } from '@/components/ReviewCard';
+import { PageShell, PageHero, brand, cardSx, primaryButtonSx, outlineButtonSx, Mark } from '@/lib/brand';
 
 export default function PublicReviewsPage() {
   const [reviews, setReviews] = useState<ReviewsResponse>({
@@ -100,66 +101,41 @@ export default function PublicReviewsPage() {
     return (sum / filteredReviews.length).toFixed(1);
   };
 
+  const statCardSx = {
+    px: 3,
+    py: 2,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 1.25,
+    borderRadius: 2.5,
+    bgcolor: '#fff',
+    border: `1px solid ${brand.line}`,
+    boxShadow: '0 16px 32px -26px rgba(26,21,38,0.35)',
+  };
+
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      {/* Breadcrumbs */}
-      <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 3 }}>
-        <Link href="/" style={{ textDecoration: 'none', color: 'inherit' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Home sx={{ mr: 0.5, fontSize: 20 }} />
-            Home
-          </Box>
-        </Link>
-        <Typography color="text.primary" sx={{ display: 'flex', alignItems: 'center' }}>
-          <RateReview sx={{ mr: 0.5, fontSize: 20 }} />
-          Student Reviews
-        </Typography>
-      </Breadcrumbs>
-
-      {/* Header */}
-      <Box sx={{ textAlign: 'center', mb: 6 }}>
-        <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 'bold' }}>
-          What Our Students Say
-        </Typography>
-        <Typography variant="h6" color="text.secondary" sx={{ mb: 3, maxWidth: 800, mx: 'auto' }}>
-          Real feedback from students who have achieved academic success with our professional services
-        </Typography>
-
+    <PageShell>
+      <PageHero
+        eyebrow="Student reviews"
+        title={<>What our <Mark>students</Mark> say</>}
+        subtitle="Real feedback from students who have achieved academic success with our professional services."
+        align="center"
+      >
         {!loading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
-            <Paper
-              elevation={1}
-              sx={{
-                px: 3,
-                py: 2,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                borderRadius: 2
-              }}
-            >
-              <RateReview color="primary" />
-              <Typography variant="h6" color="primary" sx={{ fontWeight: 'bold' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+            <Box sx={statCardSx}>
+              <RateReview sx={{ color: brand.purple }} />
+              <Typography sx={{ fontWeight: 800, fontSize: 20, color: brand.ink }}>
                 {filteredReviews.length}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography sx={{ color: brand.body, fontWeight: 600 }}>
                 Reviews
               </Typography>
-            </Paper>
+            </Box>
 
-            <Paper
-              elevation={1}
-              sx={{
-                px: 3,
-                py: 2,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                borderRadius: 2
-              }}
-            >
-              <Star color="primary" />
-              <Typography variant="h6" color="primary" sx={{ fontWeight: 'bold' }}>
+            <Box sx={statCardSx}>
+              <Star sx={{ color: brand.purple }} />
+              <Typography sx={{ fontWeight: 800, fontSize: 20, color: brand.ink }}>
                 {getAverageRating()}
               </Typography>
               <Rating
@@ -168,22 +144,35 @@ export default function PublicReviewsPage() {
                 precision={0.1}
                 size="small"
               />
-            </Paper>
+            </Box>
           </Box>
         )}
-      </Box>
+      </PageHero>
 
-      {/* Filters */}
-      <Paper elevation={1} sx={{ p: 3, mb: 4, borderRadius: 2 }}>
-        <Typography
-          variant="h6"
-          gutterBottom
-          sx={{ display: 'flex', alignItems: 'center', mb: 3 }}
-        >
-          <FilterList sx={{ mr: 1 }} />
-          Filter Reviews
-        </Typography>
-        <Grid container spacing={3}>
+      <Container maxWidth="lg" sx={{ py: { xs: 8, md: 12 } }}>
+        {/* Breadcrumbs */}
+        <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 4, '& a, & p': { color: brand.body, fontWeight: 600 } }}>
+          <Link href="/" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Home sx={{ mr: 0.5, fontSize: 20 }} />
+              Home
+            </Box>
+          </Link>
+          <Typography sx={{ display: 'flex', alignItems: 'center', color: brand.ink, fontWeight: 700 }}>
+            <RateReview sx={{ mr: 0.5, fontSize: 20 }} />
+            Student Reviews
+          </Typography>
+        </Breadcrumbs>
+
+        {/* Filters */}
+        <Paper elevation={0} sx={{ ...cardSx, '&:hover': {}, p: 3, mb: 5 }}>
+          <Typography
+            sx={{ display: 'flex', alignItems: 'center', mb: 3, fontWeight: 800, color: brand.ink, fontSize: 18 }}
+          >
+            <FilterList sx={{ mr: 1, color: brand.purple }} />
+            Filter Reviews
+          </Typography>
+          <Grid container spacing={3}>
           <Grid item xs={12} sm={6} md={4}>
             <FormControl fullWidth>
               <InputLabel>Subject</InputLabel>
@@ -231,17 +220,14 @@ export default function PublicReviewsPage() {
                 setRatingFilter('all');
                 setPage(1);
               }}
-              sx={{
-                height: 56, // Match FormControl height
-                borderRadius: 1
-              }}
+              sx={{ ...outlineButtonSx, height: 56 }}
             >
               Clear Filters
             </Button>
           </Grid>
         </Grid>
 
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+        <Typography sx={{ mt: 2.5, color: brand.body, fontWeight: 500 }}>
           Showing {paginatedReviews.length} of {filteredReviews.length} reviews
         </Typography>
       </Paper>
@@ -249,7 +235,7 @@ export default function PublicReviewsPage() {
       {/* Loading State */}
       {loading && (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-          <CircularProgress size={60} />
+          <CircularProgress size={60} sx={{ color: brand.purple }} />
         </Box>
       )}
 
@@ -277,7 +263,8 @@ export default function PublicReviewsPage() {
                     size="large"
                     sx={{
                       '& .MuiPaginationItem-root': {
-                        borderRadius: 2
+                        borderRadius: 2,
+                        fontWeight: 700,
                       }
                     }}
                   />
@@ -285,12 +272,12 @@ export default function PublicReviewsPage() {
               )}
             </>
           ) : (
-            <Paper elevation={1} sx={{ textAlign: 'center', py: 8, borderRadius: 3 }}>
-              <RateReview sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-              <Typography variant="h6" gutterBottom>
+            <Paper elevation={0} sx={{ ...cardSx, '&:hover': {}, textAlign: 'center', py: 8 }}>
+              <RateReview sx={{ fontSize: 64, color: brand.purple, mb: 2, opacity: 0.7 }} />
+              <Typography sx={{ fontWeight: 800, color: brand.ink, fontSize: 20, mb: 1 }}>
                 No reviews found
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              <Typography sx={{ color: brand.body, fontWeight: 500, mb: 3 }}>
                 No reviews match your selected filters. Try adjusting your criteria.
               </Typography>
               <Button
@@ -300,6 +287,7 @@ export default function PublicReviewsPage() {
                   setRatingFilter('all');
                   setPage(1);
                 }}
+                sx={outlineButtonSx}
               >
                 Clear All Filters
               </Button>
@@ -311,39 +299,28 @@ export default function PublicReviewsPage() {
       {/* Call to Action */}
       <Box
         sx={{
-          mt: 8,
-          p: 4,
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: 'white',
-          borderRadius: 3,
+          mt: 10,
+          p: { xs: 4, md: 6 },
+          background: `linear-gradient(135deg, ${brand.purpleDeep} 0%, ${brand.ink} 100%)`,
+          color: '#fff',
+          borderRadius: 4,
           textAlign: 'center'
         }}
       >
-        <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
-          Ready to Join Our Successful Students?
+        <Typography sx={{ fontWeight: 800, letterSpacing: '-0.02em', fontSize: { xs: 26, md: 34 }, mb: 1.5 }}>
+          Ready to join our successful students?
         </Typography>
-        <Typography variant="h6" sx={{ mb: 4, opacity: 0.9 }}>
-          Experience the same quality and success that these students have achieved
+        <Typography sx={{ mb: 4, fontWeight: 500, fontSize: { xs: 16, md: 18 }, color: 'rgba(255,255,255,0.85)' }}>
+          Experience the same quality and success that these students have achieved.
         </Typography>
         <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
           <Button
-            variant="contained"
             size="large"
             component={Link}
             href="/order/place"
-            sx={{
-              backgroundColor: '#FFD700',
-              color: '#333',
-              fontWeight: 'bold',
-              px: 4,
-              py: 1.5,
-              borderRadius: 2,
-              '&:hover': {
-                backgroundColor: '#FFC700',
-              }
-            }}
+            sx={{ ...primaryButtonSx, px: 4, py: 1.5 }}
           >
-            Place Your Order Now
+            Place your order
           </Button>
           <Button
             variant="outlined"
@@ -351,21 +328,23 @@ export default function PublicReviewsPage() {
             component={Link}
             href="/contact"
             sx={{
-              borderColor: 'white',
-              color: 'white',
               px: 4,
               py: 1.5,
-              borderRadius: 2,
+              fontWeight: 700,
+              borderRadius: 2.5,
+              borderColor: 'rgba(255,255,255,0.6)',
+              color: '#fff',
               '&:hover': {
-                backgroundColor: 'rgba(255,255,255,0.1)',
-                borderColor: 'white',
+                backgroundColor: 'rgba(255,255,255,0.12)',
+                borderColor: '#fff',
               }
             }}
           >
-            Contact Us
+            Contact us
           </Button>
         </Box>
       </Box>
-    </Container>
+      </Container>
+    </PageShell>
   );
 }

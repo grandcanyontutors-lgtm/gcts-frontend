@@ -3,8 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Container,
-  Paper,
   Box,
   Typography,
   TextField,
@@ -15,13 +13,8 @@ import {
   InputAdornment,
   FormControlLabel,
   Checkbox,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
 } from '@mui/material';
 import {
-  PersonAdd,
   Visibility,
   VisibilityOff,
   Email,
@@ -30,6 +23,7 @@ import {
 } from '@mui/icons-material';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { brand, cardSx, primaryButtonSx, Mark, PageShell } from '@/lib/brand';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -106,31 +100,41 @@ export default function RegisterPage() {
   };
 
   return (
-    <Container maxWidth="sm">
+    <PageShell>
       <Box
         sx={{
-          minHeight: '80vh',
+          minHeight: '100vh',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          py: 4,
+          px: 2,
+          py: { xs: 6, md: 8 },
         }}
       >
-        <Paper
-          elevation={3}
+        <Box
           sx={{
-            p: 4,
+            ...cardSx,
             width: '100%',
-            maxWidth: 500,
+            maxWidth: 520,
+            mx: 'auto',
+            p: { xs: 3, md: 5 },
           }}
         >
-          <Box sx={{ textAlign: 'center', mb: 4 }}>
-            <PersonAdd sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
-            <Typography variant="h4" component="h1" gutterBottom>
-              Sign Up
+          <Box sx={{ mb: 4 }}>
+            <Typography
+              component="h1"
+              sx={{
+                fontSize: { xs: 28, md: 32 },
+                fontWeight: 800,
+                letterSpacing: '-0.02em',
+                lineHeight: 1.1,
+                color: brand.ink,
+              }}
+            >
+              Create your <Mark>account</Mark>
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Join GCTS today
+            <Typography sx={{ mt: 1.5, fontSize: 16, fontWeight: 500, color: brand.body }}>
+              Join GCTS today and get expert help with your work.
             </Typography>
           </Box>
 
@@ -141,7 +145,7 @@ export default function RegisterPage() {
           )}
 
           <Box component="form" onSubmit={handleSubmit}>
-            <Box sx={{ display: 'flex', gap: 2 }}>
+            <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
               <TextField
                 fullWidth
                 label="First Name"
@@ -153,7 +157,7 @@ export default function RegisterPage() {
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <Person />
+                      <Person sx={{ color: brand.purple }} />
                     </InputAdornment>
                   ),
                 }}
@@ -170,7 +174,7 @@ export default function RegisterPage() {
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <Person />
+                      <Person sx={{ color: brand.purple }} />
                     </InputAdornment>
                   ),
                 }}
@@ -189,7 +193,7 @@ export default function RegisterPage() {
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Email />
+                    <Email sx={{ color: brand.purple }} />
                   </InputAdornment>
                 ),
               }}
@@ -207,7 +211,7 @@ export default function RegisterPage() {
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Lock />
+                    <Lock sx={{ color: brand.purple }} />
                   </InputAdornment>
                 ),
                 endAdornment: (
@@ -236,7 +240,7 @@ export default function RegisterPage() {
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Lock />
+                    <Lock sx={{ color: brand.purple }} />
                   </InputAdornment>
                 ),
                 endAdornment: (
@@ -259,13 +263,13 @@ export default function RegisterPage() {
                   name="agreeToTerms"
                   checked={formData.agreeToTerms}
                   onChange={handleChange}
-                  color="primary"
+                  sx={{ color: brand.purple, '&.Mui-checked': { color: brand.purple } }}
                 />
               }
               label={
-                <Typography variant="body2">
+                <Typography sx={{ fontSize: 14, fontWeight: 500, color: brand.body }}>
                   I agree to the{' '}
-                  <MuiLink href="/terms" target="_blank">
+                  <MuiLink href="/terms" target="_blank" sx={{ fontWeight: 700, color: brand.purple }}>
                     Terms and Conditions
                   </MuiLink>
                 </Typography>
@@ -279,22 +283,26 @@ export default function RegisterPage() {
               variant="contained"
               size="large"
               disabled={isLoading}
-              sx={{ mt: 3, mb: 2 }}
+              sx={{ ...primaryButtonSx, mt: 3, py: 1.3, fontSize: 16 }}
             >
-              {isLoading ? 'Creating Account...' : 'Sign Up'}
+              {isLoading ? 'Creating Account…' : 'Sign Up'}
             </Button>
 
-            <Box sx={{ textAlign: 'center', mt: 2 }}>
-              <Typography variant="body2" color="text.secondary">
+            <Box sx={{ textAlign: 'center', mt: 3 }}>
+              <Typography sx={{ fontSize: 14, fontWeight: 500, color: brand.body }}>
                 Already have an account?{' '}
-                <MuiLink component={Link} href="/login">
+                <MuiLink
+                  component={Link}
+                  href="/login"
+                  sx={{ fontWeight: 700, color: brand.purple }}
+                >
                   Sign In
                 </MuiLink>
               </Typography>
             </Box>
           </Box>
-        </Paper>
+        </Box>
       </Box>
-    </Container>
+    </PageShell>
   );
 }

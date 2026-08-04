@@ -10,6 +10,7 @@ import {
 } from '@mui/material';
 import { Payment } from '@mui/icons-material';
 import type { OrderFormData } from '@/app/order/place/page';
+import { brand } from '@/lib/brand';
 
 interface PaymentStepProps {
   data: OrderFormData;
@@ -25,11 +26,11 @@ interface PaymentStepProps {
  */
 export function PaymentStep({ data, errors, onChange }: PaymentStepProps) {
   return (
-    <Box>
-      <Typography variant="h6" gutterBottom>
+    <Box sx={{ p: { xs: 0, sm: 1 } }}>
+      <Typography gutterBottom sx={{ fontSize: { xs: 22, md: 26 }, fontWeight: 800, letterSpacing: '-0.02em', color: brand.ink, lineHeight: 1.2 }}>
         Payment
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+      <Typography variant="body2" sx={{ mb: 3, fontSize: 15, fontWeight: 500, color: brand.body }}>
         You don&apos;t pay anything now. After you submit the order, our team
         reviews it, confirms the final cost, and shares payment instructions
         with you on the order page and by email.
@@ -56,7 +57,7 @@ export function PaymentStep({ data, errors, onChange }: PaymentStepProps) {
         </Grid>
 
         <Grid item xs={12}>
-          <Alert severity="info" icon={<Payment />}>
+          <Alert severity="info" icon={<Payment />} sx={{ borderRadius: 2 }}>
             <Typography variant="body2" component="div">
               <strong>How payment works</strong>
               <ul style={{ margin: '8px 0 0', paddingLeft: '20px' }}>

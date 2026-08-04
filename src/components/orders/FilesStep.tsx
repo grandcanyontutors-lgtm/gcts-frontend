@@ -24,6 +24,22 @@ import {
 import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import type { OrderFormData } from '@/app/order/place/page';
+import { brand } from '@/lib/brand';
+
+const stepTitleSx = {
+  fontSize: { xs: 22, md: 26 },
+  fontWeight: 800,
+  letterSpacing: '-0.02em',
+  color: brand.ink,
+  lineHeight: 1.2,
+};
+
+const stepSubtitleSx = {
+  mb: 3,
+  fontSize: 15,
+  fontWeight: 500,
+  color: brand.body,
+};
 
 interface FilesStepProps {
   data: OrderFormData;
@@ -110,47 +126,59 @@ export function FilesStep({ data, errors, onChange }: FilesStepProps) {
   const totalSize = data.files.reduce((acc, file) => acc + file.size, 0);
 
   return (
-    <Box sx={{ p: 2 }}>
-      <Typography variant="h5" gutterBottom>
+    <Box sx={{ p: { xs: 0, sm: 1 } }}>
+      <Typography gutterBottom sx={stepTitleSx}>
         Upload Files (Optional)
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+      <Typography sx={stepSubtitleSx}>
         Upload any relevant files such as assignment instructions, rubrics, or reference materials
       </Typography>
 
       {/* Drag and Drop Area */}
       <Paper
+        elevation={0}
         {...getRootProps()}
         sx={{
           p: 4,
           textAlign: 'center',
           border: '2px dashed',
-          borderColor: isDragActive ? 'primary.main' : 'divider',
-          backgroundColor: isDragActive ? 'primary.50' : 'background.default',
+          borderColor: isDragActive ? brand.purple : brand.line,
+          backgroundColor: isDragActive ? 'rgba(156,39,176,0.06)' : brand.paper,
+          borderRadius: 3,
           cursor: 'pointer',
           transition: 'all 0.2s ease-in-out',
           mb: 3,
           '&:hover': {
-            borderColor: 'primary.main',
-            backgroundColor: 'primary.50',
+            borderColor: brand.purple,
+            backgroundColor: 'rgba(156,39,176,0.04)',
           },
         }}
       >
         <input {...getInputProps()} />
-        <CloudUpload sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
-        <Typography variant="h6" gutterBottom>
+        <CloudUpload sx={{ fontSize: 48, color: brand.purple, mb: 2 }} />
+        <Typography sx={{ fontWeight: 700, color: brand.ink, mb: 0.5 }}>
           {isDragActive ? 'Drop files here' : 'Drag & drop files here'}
         </Typography>
-        <Typography variant="body2" color="text.secondary" gutterBottom>
+        <Typography variant="body2" sx={{ color: brand.body, fontWeight: 500 }} gutterBottom>
           or click to browse files
         </Typography>
-        <Button variant="outlined" sx={{ mt: 1 }}>
+        <Button
+          variant="outlined"
+          sx={{
+            mt: 1,
+            color: brand.ink,
+            fontWeight: 700,
+            borderRadius: 2.5,
+            border: '1.5px solid rgba(26,21,38,0.15)',
+            '&:hover': { borderColor: brand.purple, bgcolor: 'rgba(156,39,176,0.04)' },
+          }}
+        >
           Choose Files
         </Button>
       </Paper>
 
       {/* File Requirements */}
-      <Alert severity="info" sx={{ mb: 3 }}>
+      <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
         <Typography variant="body2">
           <strong>Supported formats:</strong> PDF, DOC, DOCX, TXT, JPG, PNG, GIF, XLS, XLSX, PPT, PPTX
           <br />
@@ -163,7 +191,7 @@ export function FilesStep({ data, errors, onChange }: FilesStepProps) {
       {/* Uploaded Files List */}
       {data.files.length > 0 && (
         <Box>
-          <Typography variant="h6" gutterBottom>
+          <Typography gutterBottom sx={{ fontWeight: 700, color: brand.ink }}>
             Uploaded Files ({data.files.length})
           </Typography>
           <Typography variant="body2" color="text.secondary" gutterBottom>
@@ -179,11 +207,10 @@ export function FilesStep({ data, errors, onChange }: FilesStepProps) {
                 <ListItem
                   key={`${file.name}-${index}`}
                   sx={{
-                    border: 1,
-                    borderColor: 'divider',
-                    borderRadius: 1,
+                    border: `1px solid ${brand.line}`,
+                    borderRadius: 2,
                     mb: 1,
-                    backgroundColor: 'background.paper',
+                    backgroundColor: '#fff',
                   }}
                 >
                   <Box sx={{ mr: 2 }}>
@@ -229,24 +256,23 @@ export function FilesStep({ data, errors, onChange }: FilesStepProps) {
       )}
 
       {totalSize > 50 * 1024 * 1024 && (
-        <Alert severity="warning" sx={{ mt: 2 }}>
+        <Alert severity="warning" sx={{ mt: 2, borderRadius: 2 }}>
           Total file size exceeds 50MB limit. Please remove some files.
         </Alert>
       )}
 
       {/* Tips */}
-      <Box sx={{ 
-        bgcolor: 'background.paper', 
-        border: 1, 
-        borderColor: 'divider',
-        borderRadius: 1,
-        p: 2,
-        mt: 3 
+      <Box sx={{
+        bgcolor: brand.lavender,
+        border: `1px solid ${brand.line}`,
+        borderRadius: 3,
+        p: 3,
+        mt: 3,
       }}>
-        <Typography variant="h6" gutterBottom>
+        <Typography sx={{ fontWeight: 700, color: brand.ink, mb: 1 }}>
           File Upload Tips
         </Typography>
-        <Typography variant="body2" color="text.secondary" component="div">
+        <Typography variant="body2" component="div" sx={{ color: brand.body, fontWeight: 500 }}>
           <ul style={{ margin: 0, paddingLeft: '20px' }}>
             <li>Upload assignment instructions, rubrics, or syllabus</li>
             <li>Include any reference materials or sample work</li>

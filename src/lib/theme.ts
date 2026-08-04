@@ -43,8 +43,8 @@ export const lightTheme = createTheme({
       paper: '#ffffff',
     },
     text: {
-      primary: designTokens.colors.neutral[900],
-      secondary: designTokens.colors.neutral[600],
+      primary: '#1a1526', // brand ink — deep purple-black
+      secondary: '#443d52', // darker than neutral[600] so body copy reads comfortably (~9:1 on paper)
     },
   },
   typography: {
@@ -153,11 +153,12 @@ export const lightTheme = createTheme({
   components: {
     // Button overrides
     MuiButton: {
+      defaultProps: { disableElevation: true },
       styleOverrides: {
         root: {
           textTransform: 'none',
-          fontWeight: designTokens.typography.fontWeight.medium,
-          borderRadius: designTokens.borderRadius.md,
+          fontWeight: designTokens.typography.fontWeight.semibold,
+          borderRadius: designTokens.borderRadius.lg,
           padding: `${designTokens.spacing[2]} ${designTokens.spacing[4]}`,
         },
         sizeSmall: {
@@ -174,8 +175,9 @@ export const lightTheme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: designTokens.borderRadius.lg,
-          boxShadow: designTokens.boxShadow.base,
+          borderRadius: '16px',
+          border: '1px solid rgba(26,21,38,0.08)',
+          boxShadow: '0 20px 40px -28px rgba(26,21,38,0.3)',
         },
       },
     },
@@ -190,7 +192,11 @@ export const lightTheme = createTheme({
         },
       },
     },
-    // TextField overrides
+    // ---------------------------------------------------------------
+    // Form input overrides — one place that governs legibility for EVERY
+    // text field, select, and textarea in the app. Colors come from the
+    // palette so they stay correct in both light and dark mode.
+    // ---------------------------------------------------------------
     MuiTextField: {
       styleOverrides: {
         root: {
@@ -200,11 +206,107 @@ export const lightTheme = createTheme({
         },
       },
     },
+    // What the user actually types: full-strength text colour, comfortable
+    // size (16px also stops iOS from zooming on focus) and medium weight.
+    MuiInputBase: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          fontSize: 16,
+          color: theme.palette.text.primary,
+        }),
+        input: ({ theme }) => ({
+          color: theme.palette.text.primary,
+          fontWeight: 500,
+          '&::placeholder': {
+            color: theme.palette.text.secondary,
+            opacity: 0.8,
+          },
+          // Chrome autofill otherwise repaints the text pale-on-pale
+          '&:-webkit-autofill': {
+            WebkitTextFillColor: theme.palette.text.primary,
+            WebkitBoxShadow: `0 0 0 100px ${theme.palette.background.paper} inset`,
+          },
+        }),
+      },
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          backgroundColor: theme.palette.background.paper,
+          '& .MuiOutlinedInput-notchedOutline': {
+            borderColor:
+              theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.28)' : 'rgba(26,21,38,0.22)',
+          },
+          '&:hover .MuiOutlinedInput-notchedOutline': {
+            borderColor: theme.palette.primary.main,
+          },
+          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+            borderWidth: 2,
+            borderColor: theme.palette.primary.main,
+          },
+        }),
+        input: ({ theme }) => ({
+          color: theme.palette.text.primary,
+          fontWeight: 500,
+        }),
+      },
+    },
+    // Labels and helper text: readable, never washed out.
+    MuiInputLabel: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          color: theme.palette.text.secondary,
+          fontWeight: 600,
+          '&.Mui-focused': { color: theme.palette.primary.main },
+        }),
+      },
+    },
+    MuiFormHelperText: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          color: theme.palette.text.secondary,
+          fontWeight: 500,
+        }),
+      },
+    },
+    MuiFormLabel: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          color: theme.palette.text.secondary,
+          fontWeight: 600,
+          '&.Mui-focused': { color: theme.palette.primary.main },
+        }),
+      },
+    },
+    // Selected value in dropdowns + the options themselves.
+    MuiSelect: {
+      styleOverrides: {
+        select: ({ theme }) => ({
+          color: theme.palette.text.primary,
+          fontWeight: 500,
+        }),
+      },
+    },
+    MuiMenuItem: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          color: theme.palette.text.primary,
+        }),
+      },
+    },
     // Chip overrides
     MuiChip: {
       styleOverrides: {
         root: {
           borderRadius: designTokens.borderRadius.full,
+          fontWeight: 600,
+        },
+        // Outlined chips were rendering near-invisible on light backgrounds;
+        // give them a readable ink label + a real border. Filled colored chips
+        // (primary/success/etc.) keep their own contrastText.
+        outlined: {
+          color: '#1a1526',
+          borderColor: 'rgba(26,21,38,0.2)',
         },
       },
     },

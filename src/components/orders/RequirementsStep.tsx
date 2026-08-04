@@ -13,6 +13,22 @@ import {
   Slider,
 } from '@mui/material';
 import type { OrderFormData } from '@/app/order/place/page';
+import { brand } from '@/lib/brand';
+
+const stepTitleSx = {
+  fontSize: { xs: 22, md: 26 },
+  fontWeight: 800,
+  letterSpacing: '-0.02em',
+  color: brand.ink,
+  lineHeight: 1.2,
+};
+
+const stepSubtitleSx = {
+  mb: 3,
+  fontSize: 15,
+  fontWeight: 500,
+  color: brand.body,
+};
 
 interface RequirementsStepProps {
   data: OrderFormData;
@@ -37,11 +53,11 @@ const citationStyles = [
 
 export function RequirementsStep({ data, errors, onChange }: RequirementsStepProps) {
   return (
-    <Box sx={{ p: 2 }}>
-      <Typography variant="h5" gutterBottom>
+    <Box sx={{ p: { xs: 0, sm: 1 } }}>
+      <Typography gutterBottom sx={stepTitleSx}>
         Requirements & Instructions
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+      <Typography sx={stepSubtitleSx}>
         Provide detailed information about your requirements
       </Typography>
 
@@ -104,7 +120,7 @@ export function RequirementsStep({ data, errors, onChange }: RequirementsStepPro
         {/* Number of Sources */}
         <Grid item xs={12} md={6}>
           <Box sx={{ px: 2 }}>
-            <Typography gutterBottom>
+            <Typography gutterBottom sx={{ fontWeight: 600, color: brand.ink }}>
               Number of Sources: {data.sources}
             </Typography>
             <Slider
@@ -121,6 +137,7 @@ export function RequirementsStep({ data, errors, onChange }: RequirementsStepPro
                 { value: 50, label: '50' },
               ]}
               valueLabelDisplay="auto"
+              sx={{ color: brand.purple }}
             />
             <Typography variant="caption" color="text.secondary">
               Minimum number of sources required (0 = no specific requirement)
@@ -130,18 +147,17 @@ export function RequirementsStep({ data, errors, onChange }: RequirementsStepPro
 
         {/* Additional Information */}
         <Grid item xs={12}>
-          <Box sx={{ 
-            bgcolor: 'background.paper', 
-            border: 1, 
-            borderColor: 'divider',
-            borderRadius: 1,
-            p: 2,
-            mt: 2 
+          <Box sx={{
+            bgcolor: brand.lavender,
+            border: `1px solid ${brand.line}`,
+            borderRadius: 3,
+            p: 3,
+            mt: 2,
           }}>
-            <Typography variant="h6" gutterBottom>
+            <Typography sx={{ fontWeight: 700, color: brand.ink, mb: 1 }}>
               Tips for Better Results
             </Typography>
-            <Typography variant="body2" color="text.secondary" component="div">
+            <Typography variant="body2" component="div" sx={{ color: brand.body, fontWeight: 500 }}>
               <ul style={{ margin: 0, paddingLeft: '20px' }}>
                 <li>Be as specific as possible in your instructions</li>
                 <li>Include any rubrics or assignment guidelines if available</li>

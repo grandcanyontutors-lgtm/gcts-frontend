@@ -2,8 +2,6 @@
 
 import React, { useState } from 'react';
 import {
-  Container,
-  Paper,
   Box,
   Typography,
   TextField,
@@ -21,9 +19,11 @@ import {
   ArrowBack,
   Visibility,
   VisibilityOff,
+  CheckCircle,
 } from '@mui/icons-material';
 import Link from 'next/link';
 import { APIClient } from '@/lib/api';
+import { brand, cardSx, primaryButtonSx, Mark, PageShell } from '@/lib/brand';
 
 type Step = 'email' | 'reset';
 
@@ -97,34 +97,43 @@ export default function ResetPasswordPage() {
     }
   };
 
+  const cardWrapSx = {
+    ...cardSx,
+    width: '100%',
+    maxWidth: 460,
+    mx: 'auto',
+    p: { xs: 3, md: 5 },
+  } as const;
+
+  const shellSx = {
+    minHeight: '100vh',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    px: 2,
+    py: { xs: 6, md: 8 },
+  } as const;
+
   if (success) {
     return (
-      <Container maxWidth="sm">
-        <Box
-          sx={{
-            minHeight: '80vh',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            py: 4,
-          }}
-        >
-          <Paper
-            elevation={3}
-            sx={{
-              p: 4,
-              width: '100%',
-              maxWidth: 400,
-              textAlign: 'center',
-            }}
-          >
-            <LockReset sx={{ fontSize: 48, color: 'success.main', mb: 2 }} />
-            <Typography variant="h5" component="h1" gutterBottom>
-              Password Reset
+      <PageShell>
+        <Box sx={shellSx}>
+          <Box sx={{ ...cardWrapSx, textAlign: 'center' }}>
+            <CheckCircle sx={{ fontSize: 56, color: 'success.main', mb: 2 }} />
+            <Typography
+              component="h1"
+              sx={{
+                fontSize: { xs: 26, md: 30 },
+                fontWeight: 800,
+                letterSpacing: '-0.02em',
+                color: brand.ink,
+              }}
+            >
+              Password <Mark>updated</Mark>
             </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-              Your password for <strong>{email}</strong> has been updated. You can
-              now sign in with your new password.
+            <Typography sx={{ mt: 2, mb: 4, fontSize: 16, fontWeight: 500, color: brand.body }}>
+              Your password for <strong>{email}</strong> has been updated. You can now sign in with
+              your new password.
             </Typography>
             <Button
               variant="contained"
@@ -132,40 +141,34 @@ export default function ResetPasswordPage() {
               component={Link}
               href="/login"
               fullWidth
+              sx={{ ...primaryButtonSx, py: 1.3, fontSize: 16 }}
             >
               Back to Sign In
             </Button>
-          </Paper>
+          </Box>
         </Box>
-      </Container>
+      </PageShell>
     );
   }
 
   return (
-    <Container maxWidth="sm">
-      <Box
-        sx={{
-          minHeight: '80vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          py: 4,
-        }}
-      >
-        <Paper
-          elevation={3}
-          sx={{
-            p: 4,
-            width: '100%',
-            maxWidth: 400,
-          }}
-        >
-          <Box sx={{ textAlign: 'center', mb: 4 }}>
-            <LockReset sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
-            <Typography variant="h4" component="h1" gutterBottom>
-              Reset Password
+    <PageShell>
+      <Box sx={shellSx}>
+        <Box sx={cardWrapSx}>
+          <Box sx={{ mb: 4 }}>
+            <Typography
+              component="h1"
+              sx={{
+                fontSize: { xs: 28, md: 32 },
+                fontWeight: 800,
+                letterSpacing: '-0.02em',
+                lineHeight: 1.1,
+                color: brand.ink,
+              }}
+            >
+              Reset <Mark>password</Mark>
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography sx={{ mt: 1.5, fontSize: 16, fontWeight: 500, color: brand.body }}>
               {step === 'email'
                 ? "Enter your email address and we'll send you a verification code to reset your password."
                 : `Enter the verification code sent to ${email} and choose a new password.`}
@@ -192,7 +195,7 @@ export default function ResetPasswordPage() {
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <Email />
+                      <Email sx={{ color: brand.purple }} />
                     </InputAdornment>
                   ),
                 }}
@@ -204,9 +207,9 @@ export default function ResetPasswordPage() {
                 variant="contained"
                 size="large"
                 disabled={isLoading}
-                sx={{ mt: 3, mb: 2 }}
+                sx={{ ...primaryButtonSx, mt: 3, mb: 1, py: 1.3, fontSize: 16 }}
               >
-                {isLoading ? 'Sending...' : 'Send Verification Code'}
+                {isLoading ? 'Sending…' : 'Send Verification Code'}
               </Button>
             </Box>
           ) : (
@@ -222,7 +225,7 @@ export default function ResetPasswordPage() {
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <Pin />
+                      <Pin sx={{ color: brand.purple }} />
                     </InputAdornment>
                   ),
                 }}
@@ -240,7 +243,7 @@ export default function ResetPasswordPage() {
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <Lock />
+                      <Lock sx={{ color: brand.purple }} />
                     </InputAdornment>
                   ),
                   endAdornment: (
@@ -269,7 +272,7 @@ export default function ResetPasswordPage() {
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <Lock />
+                      <Lock sx={{ color: brand.purple }} />
                     </InputAdornment>
                   ),
                 }}
@@ -281,9 +284,9 @@ export default function ResetPasswordPage() {
                 variant="contained"
                 size="large"
                 disabled={isLoading}
-                sx={{ mt: 3, mb: 1 }}
+                sx={{ ...primaryButtonSx, mt: 3, mb: 1.5, py: 1.3, fontSize: 16 }}
               >
-                {isLoading ? 'Resetting...' : 'Reset Password'}
+                {isLoading ? 'Resetting…' : 'Reset Password'}
               </Button>
 
               <Button
@@ -292,7 +295,7 @@ export default function ResetPasswordPage() {
                 size="small"
                 disabled={isLoading}
                 onClick={handleResendOtp}
-                sx={{ mb: 2 }}
+                sx={{ mb: 1, fontWeight: 700, color: brand.purple }}
               >
                 Resend Code
               </Button>
@@ -303,20 +306,22 @@ export default function ResetPasswordPage() {
             <MuiLink
               component={Link}
               href="/login"
-              variant="body2"
               sx={{
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 1,
+                gap: 0.5,
+                fontSize: 14,
+                fontWeight: 700,
+                color: brand.purple,
               }}
             >
               <ArrowBack fontSize="small" />
               Back to Sign In
             </MuiLink>
           </Box>
-        </Paper>
+        </Box>
       </Box>
-    </Container>
+    </PageShell>
   );
 }

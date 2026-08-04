@@ -23,6 +23,7 @@ import {
 } from '@mui/icons-material';
 import { useState } from 'react';
 import { format, formatDistanceToNow } from 'date-fns';
+import { brand, cardSx } from '@/lib/brand';
 
 interface ReviewCardProps {
   review: any;
@@ -94,18 +95,18 @@ export function ReviewCard({
   };
 
   return (
-    <Card sx={{ mb: 2, position: 'relative' }}>
+    <Card elevation={0} sx={{ ...cardSx, mb: 2, position: 'relative' }}>
       <CardContent>
         {/* Header */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Rating 
-              value={review.rating} 
-              readOnly 
+            <Rating
+              value={review.rating}
+              readOnly
               size="small"
               sx={{ color: getRatingColor(review.rating) }}
             />
-            <Typography variant="h6" component="span">
+            <Typography variant="h6" component="span" sx={{ fontWeight: 800, color: brand.ink }}>
               {review.rating}/5
             </Typography>
             {!review.isPublic && (
@@ -126,7 +127,7 @@ export function ReviewCard({
         </Box>
 
         {/* Review Content */}
-        <Typography variant="body1" sx={{ mb: 2, lineHeight: 1.6 }}>
+        <Typography variant="body1" sx={{ mb: 2, lineHeight: 1.7, color: brand.body, fontWeight: 500 }}>
           {review.comment}
         </Typography>
 
@@ -137,7 +138,7 @@ export function ReviewCard({
               <Avatar sx={{ width: 24, height: 24, bgcolor: 'success.main' }}>
                 <Person sx={{ fontSize: 16 }} />
               </Avatar>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{ color: brand.body, fontWeight: 500 }}>
                 Student: {review.student.firstName} {review.student.lastName}
               </Typography>
             </Box>
@@ -148,7 +149,7 @@ export function ReviewCard({
               <Avatar sx={{ width: 24, height: 24, bgcolor: 'info.main' }}>
                 <Person sx={{ fontSize: 16 }} />
               </Avatar>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{ color: brand.body, fontWeight: 500 }}>
                 Writer: {review.writer.firstName} {review.writer.lastName}
                 {review.writer.rating && (
                   <Box component="span" sx={{ ml: 1 }}>
@@ -161,7 +162,7 @@ export function ReviewCard({
 
           {showOrder && review.order && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{ color: brand.body, fontWeight: 500 }}>
                 Order: #{review.order.id} - {review.order.title}
               </Typography>
               <Chip 
@@ -177,10 +178,10 @@ export function ReviewCard({
 
         {/* Footer */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" sx={{ color: brand.body, fontWeight: 500 }}>
             {formatDistanceToNow(new Date(review.createdAt), { addSuffix: true })}
           </Typography>
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" sx={{ color: brand.body, fontWeight: 500 }}>
             {format(new Date(review.createdAt), 'MMM dd, yyyy')}
           </Typography>
         </Box>

@@ -6,7 +6,9 @@ import {
   Rating,
   Chip
 } from '@mui/material';
+import { FormatQuote } from '@mui/icons-material';
 import { Review } from '@/lib/api';
+import { brand, cardSx } from '@/lib/brand';
 
 interface ReviewCardProps {
   review: Review;
@@ -16,26 +18,25 @@ interface ReviewCardProps {
 export function ReviewCard({ review, showWebkitClamp = false }: ReviewCardProps) {
   return (
     <Card
-      elevation={2}
+      elevation={0}
       sx={{
+        ...cardSx,
         height: '100%',
         p: 3,
-        borderRadius: 3,
-        transition: 'all 0.3s ease',
-        '&:hover': {
-          backgroundColor: 'rgba(255,255,255,0.35)',
-          boxShadow: '0 12px 40px rgba(255,193,7,0.3)',
-          transform: 'translateY(-4px)'
-        }
+        display: 'flex',
+        flexDirection: 'column',
       }}
     >
-      <CardContent sx={{ p: 0 }}>
+      <CardContent sx={{ p: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
         {/* Rating */}
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <Rating value={review.rating} readOnly size="small" precision={0.1} />
-          <Typography variant="body2" color="text.secondary" sx={{ ml: 1, fontWeight: 'bold' }}>
-            {review.rating.toFixed(1)}
-          </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Rating value={review.rating} readOnly size="small" precision={0.1} />
+            <Typography variant="body2" sx={{ ml: 1, fontWeight: 800, color: brand.ink }}>
+              {review.rating.toFixed(1)}
+            </Typography>
+          </Box>
+          <FormatQuote sx={{ color: brand.lavender, fontSize: 40, transform: 'scaleX(-1)' }} />
         </Box>
 
         {/* Order Type */}
@@ -43,10 +44,11 @@ export function ReviewCard({ review, showWebkitClamp = false }: ReviewCardProps)
           label={review.order_type}
           size="small"
           sx={{
-            backgroundColor: 'primary.main',
-            color: 'white',
+            alignSelf: 'flex-start',
+            backgroundColor: brand.purple,
+            color: '#fff',
             mb: 2,
-            fontWeight: 'medium',
+            fontWeight: 700,
             fontSize: '0.75rem'
           }}
         />
@@ -54,12 +56,14 @@ export function ReviewCard({ review, showWebkitClamp = false }: ReviewCardProps)
         {/* Review Text */}
         <Typography
           variant="body2"
-          color="text.primary"
           sx={{
             mb: 3,
-            lineHeight: 1.6,
+            lineHeight: 1.7,
             minHeight: '120px',
+            color: brand.body,
+            fontWeight: 500,
             fontStyle: 'italic',
+            flex: 1,
             ...(showWebkitClamp && {
               display: '-webkit-box',
               WebkitLineClamp: 4,
@@ -68,7 +72,7 @@ export function ReviewCard({ review, showWebkitClamp = false }: ReviewCardProps)
             })
           }}
         >
-          "{review.review}"
+          &ldquo;{review.review}&rdquo;
         </Typography>
 
         {/* Subject and Date */}
@@ -76,17 +80,17 @@ export function ReviewCard({ review, showWebkitClamp = false }: ReviewCardProps)
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          borderTop: 1,
-          borderColor: 'divider',
-          pt: 2
+          borderTop: `1px solid ${brand.line}`,
+          pt: 2,
+          mt: 'auto'
         }}>
           <Chip
             label={review.subject}
             variant="outlined"
             size="small"
-            color="primary"
+            sx={{ color: brand.ink, fontWeight: 600, borderColor: 'rgba(156,39,176,0.4)' }}
           />
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" sx={{ color: brand.body, fontWeight: 600 }}>
             {review.month_year}
           </Typography>
         </Box>

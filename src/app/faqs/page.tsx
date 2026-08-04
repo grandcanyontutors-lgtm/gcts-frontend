@@ -8,15 +8,13 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Paper,
   Button,
   TextField,
   InputAdornment,
 } from '@mui/material';
 import { ExpandMore, Search } from '@mui/icons-material';
 import Link from 'next/link';
-
-const ACCENT = '#8C59D9';
+import { brand, cardSx, primaryButtonSx, PageShell, PageHero, Mark } from '@/lib/brand';
 
 const faqs = [
   {
@@ -92,81 +90,106 @@ export default function FaqsPage() {
   );
 
   return (
-    <Container maxWidth="md" sx={{ py: 8 }}>
-      {/* Hero */}
-      <Box sx={{ textAlign: 'center', mb: 5 }}>
-        <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 'bold' }}>
-          Frequently Asked Questions
-        </Typography>
-        <Typography variant="h6" color="text.secondary" sx={{ maxWidth: 640, mx: 'auto' }}>
-          Everything you need to know about ordering, quality, revisions, and privacy at GCTS.
-        </Typography>
-      </Box>
-
-      {/* Search */}
-      <TextField
-        fullWidth
-        placeholder="Search questions..."
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        sx={{ mb: 4 }}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <Search />
-            </InputAdornment>
-          ),
-        }}
+    <PageShell>
+      <PageHero
+        eyebrow="Help Center"
+        title={
+          <>
+            Frequently asked <Mark>questions</Mark>
+          </>
+        }
+        subtitle="Everything you need to know about ordering, quality, revisions, and privacy at GCTS."
       />
 
-      {/* FAQ list */}
-      {filtered.length === 0 ? (
-        <Typography align="center" color="text.secondary" sx={{ py: 6 }}>
-          No questions matched your search. Try a different term, or contact our support team.
-        </Typography>
-      ) : (
-        filtered.map((f, i) => (
-          <Accordion key={i} disableGutters sx={{ mb: 1.5, borderRadius: 2, '&:before': { display: 'none' } }} elevation={1}>
-            <AccordionSummary expandIcon={<ExpandMore />}>
-              <Box>
-                <Typography variant="caption" sx={{ color: ACCENT, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                  {f.category}
-                </Typography>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                  {f.q}
-                </Typography>
-              </Box>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Typography variant="body2" color="text.secondary">
-                {f.a}
-              </Typography>
-            </AccordionDetails>
-          </Accordion>
-        ))
-      )}
+      <Container maxWidth="md" sx={{ py: { xs: 8, md: 12 } }}>
+        {/* Search */}
+        <TextField
+          fullWidth
+          placeholder="Search questions..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          sx={{
+            mb: 5,
+            '& .MuiOutlinedInput-root': {
+              bgcolor: '#fff',
+              borderRadius: 2.5,
+              fontWeight: 500,
+              '& fieldset': { borderColor: brand.line },
+              '&:hover fieldset': { borderColor: 'rgba(156,39,176,0.35)' },
+              '&.Mui-focused fieldset': { borderColor: brand.purple },
+            },
+          }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Search sx={{ color: brand.purple }} />
+              </InputAdornment>
+            ),
+          }}
+        />
 
-      {/* CTA */}
-      <Paper
-        elevation={0}
-        sx={{ p: { xs: 3, md: 5 }, borderRadius: 3, textAlign: 'center', mt: 6, bgcolor: 'rgba(140, 89, 217, 0.08)' }}
-      >
-        <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold' }}>
-          Still have a question?
-        </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-          Our support team is available around the clock to help.
-        </Typography>
-        <Button
-          component={Link}
-          href="/contact"
-          variant="contained"
-          size="large"
-          sx={{ bgcolor: ACCENT, '&:hover': { bgcolor: '#7a47c4' } }}
+        {/* FAQ list */}
+        {filtered.length === 0 ? (
+          <Typography align="center" sx={{ py: 6, fontWeight: 500, color: brand.body }}>
+            No questions matched your search. Try a different term, or contact our support team.
+          </Typography>
+        ) : (
+          filtered.map((f, i) => (
+            <Accordion
+              key={i}
+              disableGutters
+              elevation={0}
+              sx={{
+                mb: 1.5,
+                borderRadius: 3,
+                border: `1px solid ${brand.line}`,
+                bgcolor: '#fff',
+                overflow: 'hidden',
+                '&:before': { display: 'none' },
+                boxShadow: '0 12px 28px -24px rgba(26,21,38,0.35)',
+              }}
+            >
+              <AccordionSummary expandIcon={<ExpandMore sx={{ color: brand.purple }} />} sx={{ px: 3, py: 1 }}>
+                <Box>
+                  <Typography sx={{ fontSize: 12, color: brand.purple, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                    {f.category}
+                  </Typography>
+                  <Typography sx={{ fontSize: 17, fontWeight: 700, color: brand.ink, letterSpacing: '-0.01em' }}>
+                    {f.q}
+                  </Typography>
+                </Box>
+              </AccordionSummary>
+              <AccordionDetails sx={{ px: 3, pb: 3, pt: 0 }}>
+                <Typography sx={{ fontSize: 15.5, fontWeight: 500, color: brand.body, lineHeight: 1.7 }}>
+                  {f.a}
+                </Typography>
+              </AccordionDetails>
+            </Accordion>
+          ))
+        )}
+
+        {/* CTA */}
+        <Box
+          sx={{
+            ...cardSx,
+            p: { xs: 4, md: 6 },
+            textAlign: 'center',
+            mt: 7,
+            background: `radial-gradient(700px 300px at 50% -40%, ${brand.lavender} 0%, #fff 70%)`,
+            '&:hover': {},
+          }}
         >
-          Contact Support
-        </Button>
-      </Paper>
-    </Container>
+          <Typography sx={{ fontSize: { xs: 24, md: 30 }, fontWeight: 800, letterSpacing: '-0.02em', color: brand.ink, mb: 1.5 }}>
+            Still have a <Mark>question</Mark>?
+          </Typography>
+          <Typography sx={{ fontSize: 16.5, fontWeight: 500, color: brand.body, mb: 3.5 }}>
+            Our support team is available around the clock to help.
+          </Typography>
+          <Button component={Link} href="/contact" variant="contained" size="large" sx={primaryButtonSx}>
+            Contact support
+          </Button>
+        </Box>
+      </Container>
+    </PageShell>
   );
 }
