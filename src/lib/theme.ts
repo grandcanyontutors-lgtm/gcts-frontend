@@ -1,5 +1,6 @@
 import { createTheme } from '@mui/material/styles';
 import { designTokens } from './designTokens';
+import { brand } from './brand';
 
 // Create light theme
 export const lightTheme = createTheme({
@@ -194,104 +195,138 @@ export const lightTheme = createTheme({
     },
     // ---------------------------------------------------------------
     // Form input overrides — one place that governs legibility for EVERY
-    // text field, select, and textarea in the app. Colors come from the
-    // palette so they stay correct in both light and dark mode.
+    // text field, select, and textarea in the app.
+    //
+    // These deliberately use the `brand` tokens rather than palette lookups.
+    // The palette resolves per mode, so palette-driven inputs rendered as
+    // dark grey boxes inside cards that the redesign hardcodes to white.
+    // The rest of the design language (cardSx, buttons, PageHero) is brand
+    // literals, so inputs speak the same vocabulary: white fill, hairline
+    // ink border, ink text, purple focus ring.
     // ---------------------------------------------------------------
     MuiTextField: {
       styleOverrides: {
         root: {
           '& .MuiOutlinedInput-root': {
-            borderRadius: designTokens.borderRadius.md,
+            borderRadius: 12,
           },
         },
       },
     },
-    // What the user actually types: full-strength text colour, comfortable
-    // size (16px also stops iOS from zooming on focus) and medium weight.
+    // What the user actually types: full-strength ink, comfortable size
+    // (16px also stops iOS from zooming on focus) and medium weight.
     MuiInputBase: {
       styleOverrides: {
-        root: ({ theme }) => ({
+        root: {
           fontSize: 16,
-          color: theme.palette.text.primary,
-        }),
-        input: ({ theme }) => ({
-          color: theme.palette.text.primary,
+          color: brand.ink,
+        },
+        input: {
+          color: brand.ink,
           fontWeight: 500,
           '&::placeholder': {
-            color: theme.palette.text.secondary,
-            opacity: 0.8,
+            color: brand.body,
+            opacity: 0.65,
           },
           // Chrome autofill otherwise repaints the text pale-on-pale
           '&:-webkit-autofill': {
-            WebkitTextFillColor: theme.palette.text.primary,
-            WebkitBoxShadow: `0 0 0 100px ${theme.palette.background.paper} inset`,
+            WebkitTextFillColor: brand.ink,
+            WebkitBoxShadow: '0 0 0 100px #fff inset',
           },
-        }),
+        },
       },
     },
     MuiOutlinedInput: {
       styleOverrides: {
-        root: ({ theme }) => ({
-          backgroundColor: theme.palette.background.paper,
+        root: {
+          backgroundColor: '#fff',
+          borderRadius: 12,
+          transition: 'border-color 0.2s, box-shadow 0.2s, background-color 0.2s',
           '& .MuiOutlinedInput-notchedOutline': {
-            borderColor:
-              theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.28)' : 'rgba(26,21,38,0.22)',
+            borderColor: 'rgba(26,21,38,0.14)', // matches the outline-button hairline
+            transition: 'border-color 0.2s',
           },
-          '&:hover .MuiOutlinedInput-notchedOutline': {
-            borderColor: theme.palette.primary.main,
+          '&:hover:not(.Mui-disabled):not(.Mui-error) .MuiOutlinedInput-notchedOutline': {
+            borderColor: 'rgba(156,39,176,0.35)',
+          },
+          // Focus reads as a soft purple glow, echoing the primary CTA's shadow,
+          // instead of a heavy 2px slab.
+          '&.Mui-focused': {
+            backgroundColor: '#fff',
+            boxShadow: '0 0 0 4px rgba(156,39,176,0.12)',
           },
           '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-            borderWidth: 2,
-            borderColor: theme.palette.primary.main,
+            borderWidth: 1.5,
+            borderColor: brand.purple,
           },
-        }),
-        input: ({ theme }) => ({
-          color: theme.palette.text.primary,
+          '&.Mui-error.Mui-focused': {
+            boxShadow: `0 0 0 4px ${designTokens.colors.error[500]}1f`,
+          },
+          '&.Mui-disabled': {
+            backgroundColor: brand.paper,
+          },
+        },
+        input: {
+          color: brand.ink,
           fontWeight: 500,
-        }),
+        },
       },
     },
-    // Labels and helper text: readable, never washed out.
+    // Adornment icons sit in brand purple so they read as part of the field.
+    MuiInputAdornment: {
+      styleOverrides: {
+        root: {
+          color: brand.purple,
+        },
+      },
+    },
+    // Labels and helper text: readable, never washed out, never competing
+    // with the value the user typed.
     MuiInputLabel: {
       styleOverrides: {
-        root: ({ theme }) => ({
-          color: theme.palette.text.secondary,
+        root: {
+          color: brand.body,
           fontWeight: 600,
-          '&.Mui-focused': { color: theme.palette.primary.main },
-        }),
-      },
-    },
-    MuiFormHelperText: {
-      styleOverrides: {
-        root: ({ theme }) => ({
-          color: theme.palette.text.secondary,
-          fontWeight: 500,
-        }),
+          '&.Mui-focused': { color: brand.purple },
+        },
       },
     },
     MuiFormLabel: {
       styleOverrides: {
-        root: ({ theme }) => ({
-          color: theme.palette.text.secondary,
+        root: {
+          color: brand.body,
           fontWeight: 600,
-          '&.Mui-focused': { color: theme.palette.primary.main },
-        }),
+          '&.Mui-focused': { color: brand.purple },
+        },
+      },
+    },
+    MuiFormHelperText: {
+      styleOverrides: {
+        root: {
+          color: brand.body,
+          fontWeight: 500,
+          marginLeft: 2,
+        },
       },
     },
     // Selected value in dropdowns + the options themselves.
     MuiSelect: {
       styleOverrides: {
-        select: ({ theme }) => ({
-          color: theme.palette.text.primary,
+        select: {
+          color: brand.ink,
           fontWeight: 500,
-        }),
+        },
       },
     },
     MuiMenuItem: {
       styleOverrides: {
-        root: ({ theme }) => ({
-          color: theme.palette.text.primary,
-        }),
+        root: {
+          color: brand.ink,
+          '&.Mui-selected': {
+            backgroundColor: brand.lavender,
+            '&:hover': { backgroundColor: brand.lavender },
+          },
+        },
       },
     },
     // Chip overrides
