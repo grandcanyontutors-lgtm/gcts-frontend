@@ -2,9 +2,10 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Container, Typography, Box, CircularProgress } from '@mui/material';
+import { Container, Typography, CircularProgress } from '@mui/material';
 import { PrivateRoute } from '@/components/auth/PrivateRoute';
 import { useAuth } from '@/contexts/AuthContext';
+import { brand, PageShell } from '@/lib/brand';
 
 function DashboardRedirect() {
   const { user, isLoading } = useAuth();
@@ -29,23 +30,15 @@ function DashboardRedirect() {
     }
   }, [user, isLoading, router]);
 
-  if (isLoading) {
-    return (
-      <Container maxWidth="sm" sx={{ py: 8, textAlign: 'center' }}>
-        <CircularProgress size={60} />
-        <Typography variant="h6" sx={{ mt: 2 }}>
-          Loading Dashboard...
+  return (
+    <PageShell>
+      <Container maxWidth="sm" sx={{ py: 12, textAlign: 'center' }}>
+        {isLoading && <CircularProgress size={48} sx={{ color: brand.purple, mb: 2.5 }} />}
+        <Typography sx={{ fontSize: 18, fontWeight: 700, color: brand.ink }}>
+          {isLoading ? 'Loading your dashboard…' : 'Redirecting to your dashboard…'}
         </Typography>
       </Container>
-    );
-  }
-
-  return (
-    <Container maxWidth="sm" sx={{ py: 8, textAlign: 'center' }}>
-      <Typography variant="h6">
-        Redirecting to your dashboard...
-      </Typography>
-    </Container>
+    </PageShell>
   );
 }
 
