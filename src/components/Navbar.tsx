@@ -27,7 +27,9 @@ import {
 } from '@mui/icons-material';
 import Link from 'next/link';
 import Image from 'next/image';
+import { usePathname } from 'next/navigation';
 import { SiteData } from '@/lib/siteData';
+import { brand, primaryButtonSx } from '@/lib/brand';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRoleAccess } from '@/components/auth/RoleGuard';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
@@ -36,7 +38,8 @@ export function Navbar() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
+  const pathname = usePathname();
+
   // Use auth context
   const { user, isAuthenticated, logout, isLoading } = useAuth();
   const { isStudent, isWriter, isAdmin } = useRoleAccess();
@@ -81,32 +84,44 @@ export function Navbar() {
         { label: 'Login', href: '/login', icon: <Login /> },
       ];
 
+  // Exact match for '/', prefix match elsewhere, so /papers/[id] still lights
+  // up the Papers link.
+  const isActive = (href?: string) =>
+    !!href && (href === '/' ? pathname === '/' : pathname.startsWith(href));
+
   return (
-    <AppBar 
-      position="sticky" 
-      sx={{ 
-        backgroundColor: SiteData.site_colours.accent_colour,
-        boxShadow: 2,
+    <AppBar
+      position="sticky"
+      elevation={0}
+      sx={{
+        // Translucent paper rather than solid purple: the bar now sits on the
+        // light pages instead of fighting them, and the blur keeps it legible
+        // over the hero gradient as the page scrolls beneath it.
+        backgroundColor: 'rgba(250,249,252,0.82)',
+        backdropFilter: 'blur(12px)',
+        borderBottom: `1px solid ${brand.line}`,
+        color: brand.ink,
       }}
     >
       <Container maxWidth="xl">
-        <Toolbar disableGutters>
+        <Toolbar disableGutters sx={{ minHeight: { xs: 64, md: 72 } }}>
           {/* Logo and Brand */}
           <Box sx={{ display: 'flex', alignItems: 'center', mr: 4 }}>
             <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
               <Image
                 src="/assets/logos/logo.png"
                 alt={SiteData.site_name}
-                width={50}
-                height={50}
-                style={{ marginRight: '12px' }}
+                width={40}
+                height={40}
+                style={{ marginRight: '10px' }}
               />
               <Typography
-                variant="h4"
                 noWrap
                 sx={{
-                  fontWeight: 600,
-                  color: 'white',
+                  fontSize: 24,
+                  fontWeight: 800,
+                  letterSpacing: '-0.02em',
+                  color: brand.ink,
                   textDecoration: 'none',
                 }}
               >
@@ -118,56 +133,76 @@ export function Navbar() {
           {/* Desktop Navigation */}
           {!isMobile && (
             <>
-              <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2 }}>
-                {menuItems.map((item) => (
-                  <Button
-                    key={item.label}
-                    component={Link}
-                    href={item.href}
-                    startIcon={item.icon}
-                    sx={{
-                      color: 'white',
-                      mx: 1,
-                      '&:hover': {
-                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                      },
-                    }}
-                  >
-                    {item.label}
-                  </Button>
-                ))}
-                
+              <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 0.5 }}>
+                {menuItems.map((item) => {
+                  const active = isActive(item.href);
+                  return (
+                    <Button
+                      key={item.label}
+                      component={Link}
+                      href={item.href}
+                      startIcon={item.icon}
+                      sx={{
+                        position: 'relative',
+                        px: 2,
+                        color: active ? brand.purpleDeep : brand.body,
+                        fontWeight: active ? 800 : 600,
+                        '& .MuiButton-startIcon svg': { fontSize: 20 },
+                        '&:hover': { color: brand.purpleDeep, backgroundColor: brand.lavender },
+                        // The lime highlighter motif, reused as the active marker.
+                        '&::after': active
+                          ? {
+                              content: '""',
+                              position: 'absolute',
+                              left: 16,
+                              right: 16,
+                              bottom: 6,
+                              height: 3,
+                              borderRadius: 2,
+                              background: brand.lime,
+                            }
+                          : undefined,
+                      }}
+                    >
+                      {item.label}
+                    </Button>
+                  );
+                })}
               </Box>
 
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 {/* Notification Bell for authenticated users */}
                 {isAuthenticated && user && (
-                  <Box sx={{ mr: 1 }}>
+                  <Box sx={{ color: brand.body }}>
                     <NotificationBell userId={user.id} />
                   </Box>
                 )}
-                
-                {authItems.map((item) => (
-                  <Button
-                    key={item.label}
-                    component={item.href ? Link : 'button'}
-                    href={item.href}
-                    onClick={item.onClick}
-                    startIcon={item.icon}
-                    sx={{
-                      color: 'white',
-                      mx: 1,
-                      backgroundColor: item.label === 'Login' ? 'rgba(0, 0, 0, 0.2)' : 'transparent',
-                      '&:hover': {
-                        backgroundColor: item.label === 'Login' 
-                          ? 'rgba(0, 0, 0, 0.3)' 
-                          : 'rgba(255, 255, 255, 0.1)',
-                      },
-                    }}
-                  >
-                    {item.label}
-                  </Button>
-                ))}
+
+                {authItems.map((item) => {
+                  const isPrimary = item.label === 'Login';
+                  return (
+                    <Button
+                      key={item.label}
+                      component={item.href ? Link : 'button'}
+                      href={item.href}
+                      onClick={item.onClick}
+                      startIcon={item.icon}
+                      variant={isPrimary ? 'contained' : 'text'}
+                      sx={
+                        isPrimary
+                          ? { ...primaryButtonSx, px: 2.5 }
+                          : {
+                              px: 2,
+                              color: brand.body,
+                              fontWeight: 600,
+                              '&:hover': { color: brand.purpleDeep, backgroundColor: brand.lavender },
+                            }
+                      }
+                    >
+                      {item.label}
+                    </Button>
+                  );
+                })}
               </Box>
             </>
           )}
@@ -182,7 +217,7 @@ export function Navbar() {
                 aria-controls="mobile-menu"
                 aria-haspopup="true"
                 onClick={handleMenuOpen}
-                color="inherit"
+                sx={{ color: brand.ink }}
               >
                 <MenuIcon />
               </IconButton>
@@ -201,23 +236,35 @@ export function Navbar() {
                 open={Boolean(anchorEl)}
                 onClose={handleMenuClose}
               >
-                {[...menuItems, ...authItems].map((item) => (
-                  <MenuItem
-                    key={item.label}
-                    component={item.href ? Link : 'button'}
-                    href={item.href}
-                    onClick={() => {
-                      handleMenuClose();
-                      item.onClick?.();
-                    }}
-                    sx={{ minWidth: 150 }}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      {item.icon}
-                      <Typography>{item.label}</Typography>
-                    </Box>
-                  </MenuItem>
-                ))}
+                {[...menuItems, ...authItems].map((item) => {
+                  const active = isActive(item.href);
+                  return (
+                    <MenuItem
+                      key={item.label}
+                      component={item.href ? Link : 'button'}
+                      href={item.href}
+                      onClick={() => {
+                        handleMenuClose();
+                        item.onClick?.();
+                      }}
+                      sx={{
+                        minWidth: 190,
+                        py: 1.25,
+                        color: active ? brand.purpleDeep : brand.ink,
+                        fontWeight: active ? 700 : 500,
+                        '& svg': { color: active ? brand.purple : brand.body, fontSize: 20 },
+                        '&:hover': { backgroundColor: brand.lavender },
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        {item.icon}
+                        <Typography sx={{ fontWeight: 'inherit', color: 'inherit' }}>
+                          {item.label}
+                        </Typography>
+                      </Box>
+                    </MenuItem>
+                  );
+                })}
               </Menu>
             </>
           )}

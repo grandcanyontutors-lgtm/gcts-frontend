@@ -3,9 +3,7 @@
 import {
   Box,
   Container,
-  Typography,
   Grid,
-  Paper,
   Tab,
   Tabs,
 } from '@mui/material';
@@ -33,6 +31,7 @@ import { SystemSettingsTab } from '@/components/dashboard/SystemSettingsTab';
 import { StatTile } from '@/components/dashboard/StatTile';
 import { useGetDashboardStatsQuery } from '@/store/api/adminApi';
 import { useGetUserStatsQuery } from '@/store/api/userApi';
+import { brand, accents, panelSx, AppPageHeader, PageShell } from '@/lib/brand';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -63,60 +62,75 @@ function AdminDashboard() {
   const { data: userStats, isLoading: userStatsLoading } = useGetUserStatsQuery();
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
-      {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" component="h1" sx={{ fontWeight: 600 }}>
-          {getGreeting()}, {user?.firstName || 'Administrator'}
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Platform overview and management
-        </Typography>
-      </Box>
+    <PageShell>
+      <Container maxWidth="xl" sx={{ py: { xs: 4, md: 5 } }}>
+        <AppPageHeader
+          title={`${getGreeting()}, ${user?.firstName || 'Administrator'}`}
+          subtitle="Platform overview and management"
+        />
 
-      {/* Essential KPIs */}
-      <Grid container spacing={2} sx={{ mb: 4 }}>
-        <Grid item xs={6} md={3}>
-          <StatTile icon={<People />} label="Total Users" color="primary.main" loading={userStatsLoading} value={userStats?.totalUsers ?? 0} />
+        {/* Essential KPIs */}
+        <Grid container spacing={2} sx={{ mb: 4 }}>
+          <Grid item xs={6} md={3}>
+            <StatTile icon={<People />} label="Total Users" color={brand.purple} loading={userStatsLoading} value={userStats?.totalUsers ?? 0} />
+          </Grid>
+          <Grid item xs={6} md={3}>
+            <StatTile icon={<Assignment />} label="Total Orders" color={accents.active} loading={dashboardLoading} value={dashboardStats?.totalOrders ?? 0} />
+          </Grid>
+          <Grid item xs={6} md={3}>
+            <StatTile icon={<PendingActions />} label="Active Orders" color={accents.pending} loading={dashboardLoading} value={dashboardStats?.activeOrders ?? 0} />
+          </Grid>
+          <Grid item xs={6} md={3}>
+            <StatTile icon={<AttachMoney />} label="Revenue" color={accents.done} loading={dashboardLoading} value={`$${dashboardStats?.totalRevenue ?? 0}`} />
+          </Grid>
         </Grid>
-        <Grid item xs={6} md={3}>
-          <StatTile icon={<Assignment />} label="Total Orders" color="info.main" loading={dashboardLoading} value={dashboardStats?.totalOrders ?? 0} />
-        </Grid>
-        <Grid item xs={6} md={3}>
-          <StatTile icon={<PendingActions />} label="Active Orders" color="warning.main" loading={dashboardLoading} value={dashboardStats?.activeOrders ?? 0} />
-        </Grid>
-        <Grid item xs={6} md={3}>
-          <StatTile icon={<AttachMoney />} label="Revenue" color="success.main" loading={dashboardLoading} value={`$${dashboardStats?.totalRevenue ?? 0}`} />
-        </Grid>
-      </Grid>
 
-      {/* Management sections */}
-      <Paper variant="outlined" sx={{ mb: 3 }}>
-        <Tabs
-          value={tabValue}
-          onChange={(_, v) => setTabValue(v)}
-          aria-label="admin dashboard tabs"
-          variant="scrollable"
-          scrollButtons="auto"
-        >
-          <Tab label="Overview" icon={<DashboardIcon />} iconPosition="start" />
-          <Tab label="Users" icon={<People />} iconPosition="start" />
-          <Tab label="Orders" icon={<Assignment />} iconPosition="start" />
-          <Tab label="Papers" icon={<Article />} iconPosition="start" />
-          <Tab label="Reviews" icon={<RateReview />} iconPosition="start" />
-          <Tab label="Analytics" icon={<Analytics />} iconPosition="start" />
-          <Tab label="Settings" icon={<Settings />} iconPosition="start" />
-        </Tabs>
-      </Paper>
+        {/* Management sections */}
+        <Box sx={{ ...panelSx, mb: 3, px: 1 }}>
+          <Tabs
+            value={tabValue}
+            onChange={(_, v) => setTabValue(v)}
+            aria-label="admin dashboard tabs"
+            variant="scrollable"
+            scrollButtons="auto"
+            sx={{
+              minHeight: 56,
+              '& .MuiTab-root': {
+                minHeight: 56,
+                textTransform: 'none',
+                fontSize: 15,
+                fontWeight: 600,
+                color: brand.body,
+                '& svg': { fontSize: 20 },
+                '&.Mui-selected': { color: brand.purpleDeep, fontWeight: 800 },
+              },
+              // Lime indicator, matching the navbar's active marker.
+              '& .MuiTabs-indicator': {
+                height: 3,
+                borderRadius: 2,
+                backgroundColor: brand.lime,
+              },
+            }}
+          >
+            <Tab label="Overview" icon={<DashboardIcon />} iconPosition="start" />
+            <Tab label="Users" icon={<People />} iconPosition="start" />
+            <Tab label="Orders" icon={<Assignment />} iconPosition="start" />
+            <Tab label="Papers" icon={<Article />} iconPosition="start" />
+            <Tab label="Reviews" icon={<RateReview />} iconPosition="start" />
+            <Tab label="Analytics" icon={<Analytics />} iconPosition="start" />
+            <Tab label="Settings" icon={<Settings />} iconPosition="start" />
+          </Tabs>
+        </Box>
 
-      <TabPanel value={tabValue} index={0}><AdminOverviewTab /></TabPanel>
-      <TabPanel value={tabValue} index={1}><UserManagementTab /></TabPanel>
-      <TabPanel value={tabValue} index={2}><OrderManagementTab /></TabPanel>
-      <TabPanel value={tabValue} index={3}><PapersManagementTab /></TabPanel>
-      <TabPanel value={tabValue} index={4}><ReviewModerationTab /></TabPanel>
-      <TabPanel value={tabValue} index={5}><SystemAnalyticsTab /></TabPanel>
-      <TabPanel value={tabValue} index={6}><SystemSettingsTab /></TabPanel>
-    </Container>
+        <TabPanel value={tabValue} index={0}><AdminOverviewTab /></TabPanel>
+        <TabPanel value={tabValue} index={1}><UserManagementTab /></TabPanel>
+        <TabPanel value={tabValue} index={2}><OrderManagementTab /></TabPanel>
+        <TabPanel value={tabValue} index={3}><PapersManagementTab /></TabPanel>
+        <TabPanel value={tabValue} index={4}><ReviewModerationTab /></TabPanel>
+        <TabPanel value={tabValue} index={5}><SystemAnalyticsTab /></TabPanel>
+        <TabPanel value={tabValue} index={6}><SystemSettingsTab /></TabPanel>
+      </Container>
+    </PageShell>
   );
 }
 

@@ -21,6 +21,21 @@ export const brand = {
   line: 'rgba(26,21,38,0.08)', // hairline borders
 } as const;
 
+/**
+ * Status accents for dashboard metrics and order states.
+ *
+ * Deliberately muted and desaturated relative to MUI's defaults — these appear
+ * as small tinted washes next to the brand purple, and stock `info.main` /
+ * `success.main` are bright enough to fight it. Each is legible as a foreground
+ * colour on its own 10% tint.
+ */
+export const accents = {
+  active: '#2563a8', // in-progress / informational
+  pending: '#b57314', // awaiting action
+  done: '#1f7a4d', // completed
+  money: '#6a1b9a', // financial figures — brand purple, deepened
+} as const;
+
 /* --------------------------------------------------------- reusable sx bits */
 
 // A modern content card: white, soft border, gentle shadow, hover lift.
@@ -188,3 +203,62 @@ export function PageHero({
 export function PageShell({ children }: { children: React.ReactNode }) {
   return <Box sx={{ bgcolor: brand.paper, minHeight: '100vh' }}>{children}</Box>;
 }
+
+// Header for authenticated app pages (dashboards, orders, payments).
+//
+// Deliberately lighter than PageHero: no gradient band, no eyebrow rule. Those
+// belong to marketing pages a visitor sees once. A tool someone opens daily
+// should lead with their data, so this is a title, a line of context, and the
+// page's primary action — nothing that costs vertical space every visit.
+export function AppPageHeader({
+  title,
+  subtitle,
+  action,
+}: {
+  title: React.ReactNode;
+  subtitle?: React.ReactNode;
+  action?: React.ReactNode;
+}) {
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: { xs: 'column', sm: 'row' },
+        justifyContent: 'space-between',
+        alignItems: { sm: 'center' },
+        gap: 2,
+        mb: { xs: 3, md: 4 },
+      }}
+    >
+      <Box sx={{ minWidth: 0 }}>
+        <Typography
+          component="h1"
+          sx={{
+            fontSize: { xs: 26, md: 32 },
+            fontWeight: 800,
+            letterSpacing: '-0.02em',
+            lineHeight: 1.15,
+            color: brand.ink,
+          }}
+        >
+          {title}
+        </Typography>
+        {subtitle && (
+          <Typography sx={{ mt: 0.75, fontSize: 15, fontWeight: 500, color: brand.body }}>
+            {subtitle}
+          </Typography>
+        )}
+      </Box>
+      {action && <Box sx={{ flexShrink: 0 }}>{action}</Box>}
+    </Box>
+  );
+}
+
+// A content card for app pages. Same language as cardSx but without the hover
+// lift — these hold tables and lists the user is reading, not clicking through.
+export const panelSx: SxProps<Theme> = {
+  bgcolor: '#fff',
+  borderRadius: 3,
+  border: `1px solid ${brand.line}`,
+  boxShadow: '0 12px 28px -22px rgba(26,21,38,0.35)',
+};
