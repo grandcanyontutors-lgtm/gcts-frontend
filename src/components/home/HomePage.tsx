@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Modern, conversion-focused landing page for GCTS.
+ * Conversion-focused landing page for GCTS.
  *
  * Thesis: the product's real edge is transparency + a safety net — every
  * solution is reviewed by our team before the student sees it, 2 free
@@ -259,7 +259,7 @@ const FAQS = [
 
 /* -------------------------------------------------------------------- page */
 
-export default function ModernHomePage() {
+export default function HomePage() {
   const [stats, setStats] = useState<SiteStats>({
     happy_students: '10,000+',
     papers_delivered: '25,000+',
