@@ -45,7 +45,7 @@ const sections = [
   {
     title: '6. Revisions & Refunds',
     body: [
-      'Every order includes up to three free revisions, provided the revision requests are consistent with the original instructions. Requests that substantially change the original scope may be treated as a new order.',
+      'Every order includes up to two free revisions, provided the revision requests are consistent with the original instructions. Requests that substantially change the original scope may be treated as a new order.',
       'If we are unable to deliver work that meets the agreed instructions, you may be eligible for a partial or full refund depending on the stage and circumstances of the order. Refund requests are reviewed on a case-by-case basis by our support team.',
     ],
   },

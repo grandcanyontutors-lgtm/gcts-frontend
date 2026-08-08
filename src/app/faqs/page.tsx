@@ -55,7 +55,7 @@ const faqs = [
   {
     category: 'Revisions & Refunds',
     q: 'What if I need changes after delivery?',
-    a: 'Every order includes up to three free revisions. If the delivered work does not match the original instructions, request a revision from the order page and your expert will adjust it.',
+    a: 'Every order includes up to two free revisions. If the delivered work does not match the original instructions, request a revision from the order page and your expert will adjust it.',
   },
   {
     category: 'Revisions & Refunds',

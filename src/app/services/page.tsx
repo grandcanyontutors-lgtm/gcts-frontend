@@ -103,7 +103,7 @@ const styles = ['APA (6th & 7th)', 'MLA', 'Chicago/Turabian', 'Harvard', 'IEEE']
 
 const guarantees = [
   { icon: <Verified sx={{ fontSize: 26 }} />, title: 'Original Work', text: 'Written from scratch and checked for originality.' },
-  { icon: <Autorenew sx={{ fontSize: 26 }} />, title: 'Free Revisions', text: 'Up to three rounds of revisions on every order.' },
+  { icon: <Autorenew sx={{ fontSize: 26 }} />, title: 'Free Revisions', text: 'Up to two rounds of revisions on every order.' },
   { icon: <Schedule sx={{ fontSize: 26 }} />, title: 'On-Time Delivery', text: 'Deadlines from urgent turnarounds to long projects.' },
   { icon: <Lock sx={{ fontSize: 26 }} />, title: 'Confidential', text: 'Private accounts and anonymous communication.' },
   { icon: <SupportAgent sx={{ fontSize: 26 }} />, title: '24/7 Support', text: 'Reach your expert and our team anytime.' },
