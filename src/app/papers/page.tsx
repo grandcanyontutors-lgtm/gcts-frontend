@@ -11,15 +11,17 @@ import {
   Select,
   MenuItem,
   Pagination,
-  Breadcrumbs,
   Paper,
+  Collapse,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import {
   FilterList,
-  Home,
   Description,
   School,
-  MenuBook
+  MenuBook,
+  ExpandMore,
 } from '@mui/icons-material';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -37,7 +39,18 @@ export default function PapersPage() {
   const [levelFilter, setLevelFilter] = useState('all');
   const [totalPapers, setTotalPapers] = useState(0);
   const [allPapers, setAllPapers] = useState<SamplePaper[]>([]);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const papersPerPage = 9;
+
+  // Safe to branch on: ThemeProvider gates render on mount, so there is no
+  // server-rendered markup for this to disagree with (same pattern as Navbar).
+  const theme = useTheme();
+  const isPhone = useMediaQuery(theme.breakpoints.down('sm'));
+  const showFilters = !isPhone || filtersOpen;
+  const activeFilterCount =
+    (subjectFilter !== 'all' ? 1 : 0) +
+    (typeFilter !== 'all' ? 1 : 0) +
+    (levelFilter !== 'all' ? 1 : 0);
 
   // Extract unique values for filters from all papers
   const subjects = ['all', ...Array.from(new Set(allPapers.map(p => p.subject)))].sort();
@@ -105,74 +118,101 @@ export default function PapersPage() {
     setPage(1);
   };
 
-  const statCardSx = {
-    px: 3,
-    py: 2,
-    display: 'flex',
+  // The library's size, inline under the subtitle. This used to be two large
+  // stat cards, but the same two numbers are already on the page — the filter
+  // bar reports "Showing X of Y" and the Subject dropdown lists the subjects —
+  // so as cards they cost ~90px of the fold to repeat what follows them.
+  const libraryStatSx = {
+    display: 'inline-flex',
     alignItems: 'center',
-    gap: 1.25,
-    borderRadius: 2.5,
-    bgcolor: '#fff',
-    border: `1px solid ${brand.line}`,
-    boxShadow: '0 16px 32px -26px rgba(26,21,38,0.35)',
+    gap: 0.75,
+    fontSize: 14,
+    fontWeight: 700,
+    color: brand.body,
   };
 
   return (
     <PageShell>
       <PageHero
+        size="compact"
         eyebrow="Sample library"
         title={<>Sample <Mark>academic</Mark> papers</>}
-        subtitle="Browse our collection of high-quality academic papers to see the standard of excellence we deliver across all subjects and academic levels."
+        subtitle="See the standard we deliver, across every subject and academic level."
       >
         {!loading && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-            <Box sx={statCardSx}>
-              <MenuBook sx={{ color: brand.purple }} />
-              <Typography sx={{ fontWeight: 800, fontSize: 20, color: brand.ink }}>
-                {totalPapers}
-              </Typography>
-              <Typography sx={{ color: brand.body, fontWeight: 600 }}>
-                Papers available
-              </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5, flexWrap: 'wrap' }}>
+            <Box sx={libraryStatSx}>
+              <MenuBook sx={{ color: brand.purple, fontSize: 18 }} />
+              {totalPapers} papers
             </Box>
-
-            <Box sx={statCardSx}>
-              <School sx={{ color: brand.purple }} />
-              <Typography sx={{ fontWeight: 800, fontSize: 20, color: brand.ink }}>
-                {new Set(papers.map(p => p.subject)).size}
-              </Typography>
-              <Typography sx={{ color: brand.body, fontWeight: 600 }}>
-                Subjects covered
-              </Typography>
+            <Box sx={libraryStatSx}>
+              <School sx={{ color: brand.purple, fontSize: 18 }} />
+              {new Set(papers.map(p => p.subject)).size} subjects
             </Box>
           </Box>
         )}
       </PageHero>
 
-      <Container maxWidth="lg" sx={{ py: { xs: 8, md: 12 } }}>
-        {/* Breadcrumbs */}
-        <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 4, '& a, & p': { color: brand.body, fontWeight: 600 } }}>
-          <Link href="/" style={{ textDecoration: 'none', color: 'inherit' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Home sx={{ mr: 0.5, fontSize: 20 }} />
-              Home
-            </Box>
-          </Link>
-          <Typography sx={{ display: 'flex', alignItems: 'center', color: brand.ink, fontWeight: 700 }}>
-            <Description sx={{ mr: 0.5, fontSize: 20 }} />
-            Sample Papers
-          </Typography>
-        </Breadcrumbs>
-
-        {/* Filters */}
-        <Paper elevation={0} sx={{ ...cardSx, '&:hover': {}, p: 3, mb: 5 }}>
-          <Typography
-            sx={{ display: 'flex', alignItems: 'center', mb: 3, fontWeight: 800, color: brand.ink, fontSize: 18 }}
+      {/* No breadcrumbs: /papers is a top-level destination reached from the
+          navbar, which already marks "Papers" as the active link. "Home /
+          Sample Papers" only restated the heading directly above it. */}
+      <Container maxWidth="lg" sx={{ py: { xs: 3.5, md: 5 } }}>
+        {/* Filters. Full-width controls stack one per row on a phone, which is
+            correct but tall — so on xs the panel collapses to a single row and
+            the papers start near the top of the screen. The badge keeps a
+            collapsed panel honest about how many filters are narrowing the
+            list. */}
+        <Paper elevation={0} sx={{ ...cardSx, '&:hover': {}, p: { xs: 2, md: 2.5 }, mb: { xs: 2.5, md: 4 } }}>
+          <Box
+            component={isPhone ? 'button' : 'div'}
+            onClick={isPhone ? () => setFiltersOpen((o) => !o) : undefined}
+            aria-expanded={isPhone ? filtersOpen : undefined}
+            sx={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              mb: showFilters ? 2 : 0,
+              p: 0,
+              border: 'none',
+              bgcolor: 'transparent',
+              font: 'inherit',
+              textAlign: 'left',
+              cursor: isPhone ? 'pointer' : 'default',
+              minHeight: isPhone ? 36 : undefined,
+            }}
           >
-            <FilterList sx={{ mr: 1, color: brand.purple }} />
-            Filter Papers
-          </Typography>
-          <Grid container spacing={3}>
+            <FilterList sx={{ color: brand.purple, fontSize: 20 }} />
+            <Typography sx={{ fontWeight: 800, color: brand.ink, fontSize: 15 }}>
+              Filter papers
+            </Typography>
+            {activeFilterCount > 0 && (
+              <Box
+                sx={{
+                  px: 1,
+                  borderRadius: 999,
+                  bgcolor: brand.purple,
+                  color: '#fff',
+                  fontSize: 12,
+                  fontWeight: 800,
+                }}
+              >
+                {activeFilterCount}
+              </Box>
+            )}
+            {isPhone && (
+              <ExpandMore
+                sx={{
+                  ml: 'auto',
+                  color: brand.body,
+                  transition: 'transform 0.2s',
+                  transform: filtersOpen ? 'rotate(180deg)' : 'none',
+                }}
+              />
+            )}
+          </Box>
+          <Collapse in={showFilters}>
+          <Grid container spacing={2}>
             <Grid item xs={12} sm={6} md={3}>
               <FormControl fullWidth>
                 <InputLabel>Subject</InputLabel>
@@ -242,7 +282,9 @@ export default function PapersPage() {
             </Grid>
           </Grid>
 
-          <Typography sx={{ mt: 2.5, color: brand.body, fontWeight: 500 }}>
+          </Collapse>
+
+          <Typography sx={{ mt: showFilters ? 1.75 : 1.25, fontSize: 14, color: brand.body, fontWeight: 500 }}>
             Showing {papers.length} of {totalPapers} papers
           </Typography>
         </Paper>

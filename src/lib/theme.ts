@@ -127,7 +127,13 @@ export const lightTheme = createTheme({
   ],
   breakpoints: {
     values: {
-      xs: parseInt(designTokens.breakpoints.xs),
+      // MUI's first breakpoint MUST be 0. It compiles `xs` props into
+      // `@media (min-width: <xs>px)`, so taking the 480px token here meant no
+      // `xs` rule applied below 480px — every `<Grid item xs={12}>` on the site
+      // silently fell back to shrink-to-fit on phones, laying out two or three
+      // controls per row where one was intended. The remaining values keep the
+      // design-token scale; only the floor is corrected.
+      xs: 0,
       sm: parseInt(designTokens.breakpoints.sm),
       md: parseInt(designTokens.breakpoints.md),
       lg: parseInt(designTokens.breakpoints.lg),

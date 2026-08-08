@@ -312,37 +312,30 @@ function PlaceOrderPage() {
         sx={{
           background: `radial-gradient(1100px 500px at 80% -20%, ${brand.lavender} 0%, ${brand.paper} 60%)`,
           borderBottom: `1px solid ${brand.line}`,
-          py: { xs: 5, md: 7 },
+          py: { xs: 3, md: 4 },
         }}
       >
         <Container maxWidth="md">
           <Typography
             component="h1"
             sx={{
-              fontSize: { xs: 30, md: 40 },
+              fontSize: { xs: 26, md: 32 },
               fontWeight: 800,
               letterSpacing: '-0.02em',
-              lineHeight: 1.1,
+              lineHeight: 1.15,
               color: brand.ink,
             }}
           >
             <Mark>Place your order</Mark>
           </Typography>
-          <Typography
-            sx={{
-              mt: 2,
-              fontSize: { xs: 15, md: 17 },
-              fontWeight: 500,
-              color: brand.body,
-              lineHeight: 1.6,
-            }}
-          >
-            No payment until we confirm your quote · 2 free revisions
-          </Typography>
+          {/* No subtitle: it read "No payment until we confirm your quote · 2
+              free revisions", which the trust strip immediately below already
+              says. On a form, the reassurance is worth keeping once — the
+              duplicate was only pushing the first field down the screen. */}
         </Container>
       </Box>
 
-      <Container maxWidth="md" sx={{ py: { xs: 4, md: 6 } }}>
+      <Container maxWidth="md" sx={{ py: { xs: 3, md: 4 } }}>
         {/* Trust strip */}
         <Box
           sx={{

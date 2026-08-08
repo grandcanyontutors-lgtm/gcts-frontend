@@ -100,16 +100,17 @@ export default function TermsPage() {
   return (
     <PageShell>
       <PageHero
+        size="compact"
         eyebrow={`Last updated: ${LAST_UPDATED}`}
         title={
           <>
             Terms of <Mark>service</Mark>
           </>
         }
-        subtitle="These Terms govern your use of Grand Canyon Tutoring Services. Please read them carefully — they explain your rights and responsibilities, and how we keep GCTS a safe portal to academic understanding."
+        subtitle="These Terms govern your use of Grand Canyon Tutoring Services — your rights, your responsibilities, and how we keep GCTS a safe portal to academic understanding."
       />
 
-      <Container maxWidth="md" sx={{ py: { xs: 8, md: 12 } }}>
+      <Container maxWidth="md" sx={{ py: { xs: 4, md: 6 } }}>
         <Box sx={{ ...cardSx, p: { xs: 3.5, md: 6 }, '&:hover': {} }}>
           {sections.map((section) => (
             <Box key={section.title} sx={{ mb: 4 }}>

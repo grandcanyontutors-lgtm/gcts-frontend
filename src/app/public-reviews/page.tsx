@@ -12,14 +12,12 @@ import {
   MenuItem,
   Pagination,
   CircularProgress,
-  Breadcrumbs,
   Paper,
   Rating
 } from '@mui/material';
 import {
   FilterList,
   Star,
-  Home,
   RateReview
 } from '@mui/icons-material';
 import Link from 'next/link';
@@ -116,9 +114,9 @@ export default function PublicReviewsPage() {
   return (
     <PageShell>
       <PageHero
+        size="compact"
         eyebrow="Student reviews"
         title={<>What our <Mark>students</Mark> say</>}
-        subtitle="Real feedback from students who have achieved academic success with our professional services."
         align="center"
       >
         {!loading && (
@@ -149,30 +147,20 @@ export default function PublicReviewsPage() {
         )}
       </PageHero>
 
-      <Container maxWidth="lg" sx={{ py: { xs: 8, md: 12 } }}>
-        {/* Breadcrumbs */}
-        <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 4, '& a, & p': { color: brand.body, fontWeight: 600 } }}>
-          <Link href="/" style={{ textDecoration: 'none', color: 'inherit' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Home sx={{ mr: 0.5, fontSize: 20 }} />
-              Home
-            </Box>
-          </Link>
-          <Typography sx={{ display: 'flex', alignItems: 'center', color: brand.ink, fontWeight: 700 }}>
-            <RateReview sx={{ mr: 0.5, fontSize: 20 }} />
-            Student Reviews
-          </Typography>
-        </Breadcrumbs>
+      <Container maxWidth="lg" sx={{ py: { xs: 3.5, md: 5 } }}>
+        {/* No breadcrumbs: reached from the navbar's "Reviews" link, which is
+            already marked active. "Home / Student Reviews" only restated the
+            heading above it. */}
 
         {/* Filters */}
-        <Paper elevation={0} sx={{ ...cardSx, '&:hover': {}, p: 3, mb: 5 }}>
+        <Paper elevation={0} sx={{ ...cardSx, '&:hover': {}, p: { xs: 2, md: 2.5 }, mb: { xs: 2.5, md: 4 } }}>
           <Typography
-            sx={{ display: 'flex', alignItems: 'center', mb: 3, fontWeight: 800, color: brand.ink, fontSize: 18 }}
+            sx={{ display: 'flex', alignItems: 'center', mb: 2, fontWeight: 800, color: brand.ink, fontSize: 15 }}
           >
-            <FilterList sx={{ mr: 1, color: brand.purple }} />
-            Filter Reviews
+            <FilterList sx={{ mr: 1, color: brand.purple, fontSize: 20 }} />
+            Filter reviews
           </Typography>
-          <Grid container spacing={3}>
+          <Grid container spacing={2}>
           <Grid item xs={12} sm={6} md={4}>
             <FormControl fullWidth>
               <InputLabel>Subject</InputLabel>

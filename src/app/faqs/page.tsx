@@ -92,16 +92,16 @@ export default function FaqsPage() {
   return (
     <PageShell>
       <PageHero
+        size="compact"
         eyebrow="Help Center"
         title={
           <>
             Frequently asked <Mark>questions</Mark>
           </>
         }
-        subtitle="Everything you need to know about ordering, quality, revisions, and privacy at GCTS."
       />
 
-      <Container maxWidth="md" sx={{ py: { xs: 8, md: 12 } }}>
+      <Container maxWidth="md" sx={{ py: { xs: 3.5, md: 5 } }}>
         {/* Search */}
         <TextField
           fullWidth
