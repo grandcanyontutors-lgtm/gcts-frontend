@@ -335,7 +335,16 @@ function SearchPage() {
 
       {/* Tabs */}
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-        <Tabs value={tabValue} onChange={handleTabChange}>
+        {/* Scrollable: six tabs overflow a phone viewport, and a fixed Tabs bar
+            clips the overflow rather than scrolling it — "Messages" was simply
+            unreachable below ~600px. */}
+        <Tabs
+          value={tabValue}
+          onChange={handleTabChange}
+          variant="scrollable"
+          scrollButtons="auto"
+          allowScrollButtonsMobile
+        >
           <Tab label="All" />
           <Tab label="Orders" />
           <Tab label="Users" />

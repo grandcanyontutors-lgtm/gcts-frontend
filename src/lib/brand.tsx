@@ -157,42 +157,71 @@ export function SectionHeading({
 
 // Standard page header band used at the top of interior pages: a soft
 // lavender→paper gradient with an eyebrow, title, and optional subtitle.
+//
+// `size` picks how much of the fold the band is allowed to claim:
+//
+//   'default' — for pages a cold visitor lands on (/about, /services,
+//               /contact). Framing and a CTA are the job, so the band leads.
+//   'compact' — for pages someone navigated to on purpose (/papers, /faqs,
+//               the review lists). They have already chosen; re-pitching them
+//               just pushes the catalogue, the search box, or the list they
+//               came for below the fold. Same gradient and eyebrow so the page
+//               still reads as ours — roughly half the height.
 export function PageHero({
   eyebrow,
   title,
   subtitle,
   children,
   align = 'left',
+  size = 'default',
 }: {
   eyebrow?: React.ReactNode;
   title: React.ReactNode;
   subtitle?: React.ReactNode;
   children?: React.ReactNode;
   align?: 'left' | 'center';
+  size?: 'default' | 'compact';
 }) {
+  const compact = size === 'compact';
   return (
     <Box
       sx={{
         background: `radial-gradient(1100px 500px at 80% -20%, ${brand.lavender} 0%, ${brand.paper} 60%)`,
         borderBottom: `1px solid ${brand.line}`,
-        py: { xs: 6, md: 9 },
+        py: compact ? { xs: 3.5, md: 5 } : { xs: 6, md: 9 },
       }}
     >
       <Container maxWidth="lg">
         <Box sx={{ textAlign: align, maxWidth: align === 'center' ? 760 : 720, mx: align === 'center' ? 'auto' : 0 }}>
-          {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
+          {eyebrow && <Eyebrow sx={compact ? { mb: 1 } : undefined}>{eyebrow}</Eyebrow>}
           <Typography
             component="h1"
-            sx={{ fontSize: { xs: 34, sm: 42, md: 50 }, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.05, color: brand.ink }}
+            sx={{
+              fontSize: compact ? { xs: 27, sm: 31, md: 36 } : { xs: 34, sm: 42, md: 50 },
+              fontWeight: 800,
+              letterSpacing: '-0.02em',
+              lineHeight: compact ? 1.15 : 1.05,
+              color: brand.ink,
+            }}
           >
             {title}
           </Typography>
           {subtitle && (
-            <Typography sx={{ mt: 2.5, fontSize: { xs: 17, md: 19 }, fontWeight: 500, color: brand.body, lineHeight: 1.6, maxWidth: 620, mx: align === 'center' ? 'auto' : 0 }}>
+            <Typography
+              sx={{
+                mt: compact ? 1.25 : 2.5,
+                fontSize: compact ? { xs: 15, md: 16 } : { xs: 17, md: 19 },
+                fontWeight: 500,
+                color: brand.body,
+                lineHeight: 1.6,
+                maxWidth: compact ? 640 : 620,
+                mx: align === 'center' ? 'auto' : 0,
+              }}
+            >
               {subtitle}
             </Typography>
           )}
-          {children && <Box sx={{ mt: 4 }}>{children}</Box>}
+          {children && <Box sx={{ mt: compact ? 2.5 : 4 }}>{children}</Box>}
         </Box>
       </Container>
     </Box>

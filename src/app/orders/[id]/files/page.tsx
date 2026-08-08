@@ -222,7 +222,14 @@ function OrderFilesPage({ params }: OrderFilesPageProps) {
       {/* File Tabs */}
       <Card>
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs value={tabValue} onChange={handleTabChange} aria-label="file types">
+          <Tabs
+            value={tabValue}
+            onChange={handleTabChange}
+            aria-label="file types"
+            variant="scrollable"
+            scrollButtons="auto"
+            allowScrollButtonsMobile
+          >
             {fileTypes.map((type, index) => (
               <Tab
                 key={type}
