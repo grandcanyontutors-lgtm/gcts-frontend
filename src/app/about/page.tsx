@@ -83,7 +83,7 @@ const steps = [
   {
     title: 'Review and refine',
     description:
-      'Receive your draft, request up to three free revisions if anything needs adjusting, and approve the final version with confidence.',
+      'Receive your draft, request up to two free revisions if anything needs adjusting, and approve the final version with confidence.',
   },
 ];
 
