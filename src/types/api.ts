@@ -63,6 +63,12 @@ export interface RegisterRequest {
   firstName: string;
   lastName: string;
   role: UserRole;
+  /**
+   * Proof that the address was reached, issued by POST /verify-otp/ after the
+   * emailed code is entered. The backend refuses registration without it, so
+   * no account can be created against an address that does not exist.
+   */
+  verificationToken: string;
 }
 
 export interface PasswordResetRequest {

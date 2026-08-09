@@ -23,7 +23,8 @@ import {
 } from '@mui/icons-material';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { brand, cardSx, primaryButtonSx, Mark, PageShell } from '@/lib/brand';
+import { APIClient } from '@/lib/api';
+import { brand, cardSx, primaryButtonSx, outlineButtonSx, Mark, PageShell } from '@/lib/brand';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -42,6 +43,13 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Signup is two steps: fill in the details, then prove the address is real
+  // by entering the emailed code. The account is only created at the end, so
+  // abandoning the second step leaves nothing behind.
+  const [step, setStep] = useState<'details' | 'verify'>('details');
+  const [code, setCode] = useState('');
+  const [notice, setNotice] = useState('');
+
   // Redirect once authenticated (mirrors the login page behaviour).
   useEffect(() => {
     if (isAuthenticated) {
@@ -57,35 +65,76 @@ export default function RegisterPage() {
     }));
   };
 
-  const handleSubmit = async (event: React.FormEvent) => {
+  // Step 1 — validate the details locally, then have a code emailed.
+  const handleDetailsSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    setIsLoading(true);
     setError('');
+    setNotice('');
 
-    // Basic validation
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
-      setIsLoading(false);
       return;
     }
 
     if (!formData.agreeToTerms) {
       setError('Please agree to the terms and conditions');
-      setIsLoading(false);
       return;
     }
 
+    setIsLoading(true);
     try {
+      await APIClient.post('/generate-otp/', { email: formData.email });
+      setStep('verify');
+      setNotice(`We sent an 8-character code to ${formData.email}.`);
+    } catch (err: any) {
+      setError(err?.message || 'Could not send the verification code. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Step 2 — exchange the code for a verification token, then create the account.
+  const handleVerifySubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError('');
+    setNotice('');
+    setIsLoading(true);
+
+    try {
+      const verification = await APIClient.post<{ verificationToken?: string }>(
+        '/verify-otp/',
+        { email: formData.email, otp: code.trim() }
+      );
+
+      if (!verification?.verificationToken) {
+        throw new Error('Verification failed. Please request a new code.');
+      }
+
       await register({
         email: formData.email,
         password: formData.password,
         firstName: formData.firstName,
         lastName: formData.lastName,
         role: 'student',
+        verificationToken: verification.verificationToken,
       });
       // On success the user is logged in; redirect happens via useEffect above.
     } catch (err: any) {
       setError(err?.message || 'Registration failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    setError('');
+    setNotice('');
+    setIsLoading(true);
+    try {
+      await APIClient.post('/generate-otp/', { email: formData.email });
+      setNotice('A new code is on its way.');
+    } catch (err: any) {
+      setError(err?.message || 'Could not resend the code. Please try again shortly.');
     } finally {
       setIsLoading(false);
     }
@@ -131,10 +180,16 @@ export default function RegisterPage() {
                 color: brand.ink,
               }}
             >
-              Create your <Mark>account</Mark>
+              {step === 'details' ? (
+                <>Create your <Mark>account</Mark></>
+              ) : (
+                <>Check your <Mark>email</Mark></>
+              )}
             </Typography>
             <Typography sx={{ mt: 1.5, fontSize: 16, fontWeight: 500, color: brand.body }}>
-              Join GCTS today and get expert help with your work.
+              {step === 'details'
+                ? 'Join GCTS today and get expert help with your work.'
+                : `Enter the code we sent to ${formData.email} to finish creating your account.`}
             </Typography>
           </Box>
 
@@ -143,8 +198,80 @@ export default function RegisterPage() {
               {error}
             </Alert>
           )}
+          {notice && !error && (
+            <Alert severity="success" sx={{ mb: 3 }}>
+              {notice}
+            </Alert>
+          )}
 
-          <Box component="form" onSubmit={handleSubmit}>
+          {step === 'verify' && (
+            <Box component="form" onSubmit={handleVerifySubmit}>
+              <TextField
+                fullWidth
+                label="Verification code"
+                name="otp"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                required
+                autoFocus
+                autoComplete="one-time-code"
+                inputProps={{ maxLength: 8 }}
+                margin="normal"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Email sx={{ color: brand.purple }} />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+              <Typography sx={{ mt: 1, fontSize: 13, fontWeight: 500, color: brand.body }}>
+                The code expires in 15 minutes.
+              </Typography>
+
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                size="large"
+                disabled={isLoading || !code.trim()}
+                sx={{ ...primaryButtonSx, mt: 3, py: 1.3, fontSize: 16 }}
+              >
+                {isLoading ? 'Verifying…' : 'Verify and create account'}
+              </Button>
+
+              <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+                <Button
+                  fullWidth
+                  onClick={handleResend}
+                  disabled={isLoading}
+                  sx={{ ...outlineButtonSx, py: 1 }}
+                >
+                  Resend code
+                </Button>
+                <Button
+                  fullWidth
+                  onClick={() => {
+                    setStep('details');
+                    setCode('');
+                    setError('');
+                    setNotice('');
+                  }}
+                  disabled={isLoading}
+                  sx={{ ...outlineButtonSx, py: 1 }}
+                >
+                  Change email
+                </Button>
+              </Box>
+            </Box>
+          )}
+
+          <Box
+            component="form"
+            onSubmit={handleDetailsSubmit}
+            sx={{ display: step === 'details' ? 'block' : 'none' }}
+          >
             <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
               <TextField
                 fullWidth
@@ -285,7 +412,7 @@ export default function RegisterPage() {
               disabled={isLoading}
               sx={{ ...primaryButtonSx, mt: 3, py: 1.3, fontSize: 16 }}
             >
-              {isLoading ? 'Creating Account…' : 'Sign Up'}
+              {isLoading ? 'Sending code…' : 'Continue'}
             </Button>
 
             <Box sx={{ textAlign: 'center', mt: 3 }}>

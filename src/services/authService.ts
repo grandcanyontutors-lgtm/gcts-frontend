@@ -39,6 +39,7 @@ export class AuthService {
       password: userData.password,
       firstName: userData.firstName,
       lastName: userData.lastName,
+      verificationToken: userData.verificationToken,
     });
 
     // Map backend response to frontend AuthTokens type (mirror login()).
