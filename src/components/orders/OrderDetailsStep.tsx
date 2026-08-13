@@ -20,6 +20,13 @@ import { useState, useEffect } from 'react';
 import type { OrderFormData } from '@/app/order/place/page';
 import { useDropdownOptions } from '@/hooks/useDropdownOptions';
 import { brand } from '@/lib/brand';
+import {
+  ACADEMIC_LEVEL_OPTIONS,
+  ORDER_TYPE_OPTIONS,
+  SUBJECT_OPTIONS,
+  URGENCY_OPTIONS,
+  optionsFromApi,
+} from '@/lib/orderOptions';
 
 const stepTitleSx = {
   fontSize: { xs: 22, md: 26 },
@@ -42,63 +49,19 @@ interface OrderDetailsStepProps {
   onChange: (data: Partial<OrderFormData>) => void;
 }
 
-const subjects = [
-  'Mathematics',
-  'English',
-  'History',
-  'Science',
-  'Computer Science',
-  'Business',
-  'Economics',
-  'Psychology',
-  'Sociology',
-  'Philosophy',
-  'Literature',
-  'Biology',
-  'Chemistry',
-  'Physics',
-  'Engineering',
-  'Medicine',
-  'Law',
-  'Education',
-  'Art',
-  'Music',
-  'Other',
-];
-
-const orderTypes = [
-  'Essay',
-  'Research Paper',
-  'Term Paper',
-  'Thesis',
-  'Dissertation',
-  'Case Study',
-  'Lab Report',
-  'Book Report',
-  'Assignment',
-  'Homework',
-  'Project',
-  'Presentation',
-  'Other',
-];
-
-const academicLevels = [
-  'High School',
-  'Undergraduate',
-  'Graduate',
-  'PhD',
-  'Masters',
-  'Professional',
-];
-
-const urgencyLevels = [
-  { value: 'standard', label: 'Standard (7+ days)', multiplier: 1 },
-  { value: 'urgent', label: 'Urgent (3-6 days)', multiplier: 1.5 },
-  { value: 'very_urgent', label: 'Very Urgent (1-2 days)', multiplier: 2 },
-];
 
 export function OrderDetailsStep({ data, errors, onChange }: OrderDetailsStepProps) {
-  const { options: subjectOptions, loading: subjectsLoading } = useDropdownOptions('subjects');
+  // Admin-managed options, falling back to the canonical lists when the API is
+  // unreachable. Both carry backend choice values, so what the user picks is
+  // what gets submitted.
+  const { options: apiSubjects, loading: subjectsLoading } = useDropdownOptions('subjects');
+  const { options: apiTypes } = useDropdownOptions('order-types');
+  const { options: apiLevels } = useDropdownOptions('academic-levels');
+
+  const subjects = optionsFromApi(apiSubjects, SUBJECT_OPTIONS);
+  const orderTypes = optionsFromApi(apiTypes, ORDER_TYPE_OPTIONS);
+  const academicLevels = optionsFromApi(apiLevels, ACADEMIC_LEVEL_OPTIONS);
+
   const [deadline, setDeadline] = useState<Date | null>(
     data.deadline ? new Date(data.deadline) : null
   );
@@ -112,10 +75,12 @@ export function OrderDetailsStep({ data, errors, onChange }: OrderDetailsStepPro
 
   const calculateEstimatedPrice = () => {
     const basePrice = 15; // Base price per page
-    const urgencyMultiplier = urgencyLevels.find(u => u.value === data.urgency)?.multiplier || 1;
-    const levelMultiplier = data.academicLevel === 'PhD' ? 1.5 : 
-                           data.academicLevel === 'Graduate' || data.academicLevel === 'Masters' ? 1.3 : 1;
-    
+    const urgencyMultiplier = URGENCY_OPTIONS.find(u => u.value === data.urgency)?.multiplier || 1;
+    // Keyed on backend level values now that the Select stores those.
+    const levelMultiplier = data.academicLevel === 'doctorate' ? 1.5 :
+                           data.academicLevel === 'masters' ? 1.3 : 1;
+
+
     return Math.round(data.pages * basePrice * urgencyMultiplier * levelMultiplier);
   };
 
@@ -160,17 +125,11 @@ export function OrderDetailsStep({ data, errors, onChange }: OrderDetailsStepPro
                 label="Subject"
                 onChange={(e) => onChange({ subject: e.target.value })}
               >
-                {subjectOptions.length > 0
-                  ? subjectOptions.map((option) => (
-                      <MenuItem key={option.id} value={option.name}>
-                        {option.display_name}
-                      </MenuItem>
-                    ))
-                  : subjects.map((subject) => (
-                      <MenuItem key={subject} value={subject}>
-                        {subject}
-                      </MenuItem>
-                    ))}
+                {subjects.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
               </Select>
               {errors.subject && <FormHelperText>{errors.subject}</FormHelperText>}
             </FormControl>
@@ -185,9 +144,9 @@ export function OrderDetailsStep({ data, errors, onChange }: OrderDetailsStepPro
                 label="Order Type"
                 onChange={(e) => onChange({ type: e.target.value })}
               >
-                {orderTypes.map((type) => (
-                  <MenuItem key={type} value={type}>
-                    {type}
+                {orderTypes.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
                   </MenuItem>
                 ))}
               </Select>
@@ -204,9 +163,9 @@ export function OrderDetailsStep({ data, errors, onChange }: OrderDetailsStepPro
                 label="Academic Level"
                 onChange={(e) => onChange({ academicLevel: e.target.value })}
               >
-                {academicLevels.map((level) => (
-                  <MenuItem key={level} value={level}>
-                    {level}
+                {academicLevels.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
                   </MenuItem>
                 ))}
               </Select>
@@ -223,7 +182,7 @@ export function OrderDetailsStep({ data, errors, onChange }: OrderDetailsStepPro
                 label="Urgency"
                 onChange={(e) => onChange({ urgency: e.target.value as any })}
               >
-                {urgencyLevels.map((level) => (
+                {URGENCY_OPTIONS.map((level) => (
                   <MenuItem key={level.value} value={level.value}>
                     {level.label}
                   </MenuItem>

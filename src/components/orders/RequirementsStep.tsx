@@ -13,7 +13,9 @@ import {
   Slider,
 } from '@mui/material';
 import type { OrderFormData } from '@/app/order/place/page';
+import { useDropdownOptions } from '@/hooks/useDropdownOptions';
 import { brand } from '@/lib/brand';
+import { CITATION_STYLE_OPTIONS, optionsFromApi } from '@/lib/orderOptions';
 
 const stepTitleSx = {
   fontSize: { xs: 22, md: 26 },
@@ -36,22 +38,10 @@ interface RequirementsStepProps {
   onChange: (data: Partial<OrderFormData>) => void;
 }
 
-const citationStyles = [
-  'APA',
-  'MLA',
-  'Chicago',
-  'Harvard',
-  'IEEE',
-  'Vancouver',
-  'AMA',
-  'ASA',
-  'APSA',
-  'Turabian',
-  'Other',
-  'Not Required',
-];
-
 export function RequirementsStep({ data, errors, onChange }: RequirementsStepProps) {
+  const { options: apiStyles } = useDropdownOptions('citation-styles');
+  const citationStyles = optionsFromApi(apiStyles, CITATION_STYLE_OPTIONS);
+
   return (
     <Box sx={{ p: { xs: 0, sm: 1 } }}>
       <Typography gutterBottom sx={stepTitleSx}>
@@ -108,8 +98,8 @@ export function RequirementsStep({ data, errors, onChange }: RequirementsStepPro
               onChange={(e) => onChange({ citation: e.target.value })}
             >
               {citationStyles.map((style) => (
-                <MenuItem key={style} value={style}>
-                  {style}
+                <MenuItem key={style.value} value={style.value}>
+                  {style.label}
                 </MenuItem>
               ))}
             </Select>
