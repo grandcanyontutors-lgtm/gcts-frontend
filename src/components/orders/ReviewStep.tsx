@@ -29,6 +29,14 @@ import {
 import { format } from 'date-fns';
 import type { OrderFormData } from '@/app/order/place/page';
 import { brand } from '@/lib/brand';
+import {
+  ACADEMIC_LEVEL_OPTIONS,
+  CITATION_STYLE_OPTIONS,
+  ORDER_TYPE_OPTIONS,
+  SUBJECT_OPTIONS,
+  URGENCY_OPTIONS,
+  labelFor,
+} from '@/lib/orderOptions';
 
 const reviewCardSx = {
   bgcolor: '#fff',
@@ -68,17 +76,9 @@ export function ReviewStep({ data, errors }: ReviewStepProps) {
 
   const getUrgencyColor = (urgency: string) => {
     switch (urgency) {
-      case 'very_urgent': return 'error';
-      case 'urgent': return 'warning';
+      case 'high': return 'error';
+      case 'medium': return 'warning';
       default: return 'success';
-    }
-  };
-
-  const getUrgencyLabel = (urgency: string) => {
-    switch (urgency) {
-      case 'very_urgent': return 'Very Urgent (1-2 days)';
-      case 'urgent': return 'Urgent (3-6 days)';
-      default: return 'Standard (7+ days)';
     }
   };
 
@@ -123,19 +123,27 @@ export function ReviewStep({ data, errors }: ReviewStepProps) {
                 <ListItem>
                   <ListItemText
                     primary="Subject"
-                    secondary={data.subject || 'Not specified'}
+                    secondary={
+                      data.subject ? labelFor(SUBJECT_OPTIONS, data.subject) : 'Not specified'
+                    }
                   />
                 </ListItem>
                 <ListItem>
                   <ListItemText
                     primary="Type"
-                    secondary={data.type || 'Not specified'}
+                    secondary={
+                      data.type ? labelFor(ORDER_TYPE_OPTIONS, data.type) : 'Not specified'
+                    }
                   />
                 </ListItem>
                 <ListItem>
                   <ListItemText
                     primary="Academic Level"
-                    secondary={data.academicLevel || 'Not specified'}
+                    secondary={
+                      data.academicLevel
+                        ? labelFor(ACADEMIC_LEVEL_OPTIONS, data.academicLevel)
+                        : 'Not specified'
+                    }
                   />
                 </ListItem>
                 <ListItem>
@@ -155,7 +163,7 @@ export function ReviewStep({ data, errors }: ReviewStepProps) {
                     primary="Urgency"
                     secondary={
                       <Chip
-                        label={getUrgencyLabel(data.urgency)}
+                        label={labelFor(URGENCY_OPTIONS, data.urgency)}
                         color={getUrgencyColor(data.urgency) as any}
                         size="small"
                       />
@@ -194,7 +202,11 @@ export function ReviewStep({ data, errors }: ReviewStepProps) {
                 <ListItem>
                   <ListItemText
                     primary="Citation Style"
-                    secondary={data.citation || 'Not specified'}
+                    secondary={
+                      data.citation
+                        ? labelFor(CITATION_STYLE_OPTIONS, data.citation)
+                        : 'Not specified'
+                    }
                   />
                 </ListItem>
                 <ListItem>

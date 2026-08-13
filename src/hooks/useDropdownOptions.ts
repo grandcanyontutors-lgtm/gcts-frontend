@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import config from '@/lib/config';
 
 interface DropdownOption {
   id: string;
@@ -67,7 +68,11 @@ export const useDropdownOptions = (
           return;
         }
 
-        const response = await fetch(`/api/v1/dropdown-options/${fieldType}/`);
+        // Absolute, via config — the API lives on a different origin in every
+        // environment. A relative path resolves against the Next server, which
+        // has no such route, so this silently 404'd and every consumer fell
+        // through to its static fallback.
+        const response = await fetch(config.getApiUrl(`dropdown-options/${fieldType}/`));
         if (!response.ok) {
           throw new Error(`Failed to fetch ${fieldType}: ${response.statusText}`);
         }
@@ -88,7 +93,7 @@ export const useDropdownOptions = (
           return;
         }
 
-        const response = await fetch('/api/v1/dropdown-options/');
+        const response = await fetch(config.getApiUrl('dropdown-options/'));
         if (!response.ok) {
           throw new Error(`Failed to fetch dropdown options: ${response.statusText}`);
         }

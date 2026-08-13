@@ -17,6 +17,7 @@ import {
   CircularProgress,
   Alert
 } from '@mui/material';
+import config from '@/lib/config';
 
 interface DropdownOption {
   id: string;
@@ -63,7 +64,8 @@ const DynamicDropdown: React.FC<DynamicDropdownProps> = ({
         setLoading(true);
         setFetchError(null);
         
-        const response = await fetch(`/api/v1/dropdown-options/${fieldType}/`);
+        // Absolute, via config — see the note in useDropdownOptions.ts.
+        const response = await fetch(config.getApiUrl(`dropdown-options/${fieldType}/`));
         if (!response.ok) {
           throw new Error(`Failed to fetch ${fieldType}: ${response.statusText}`);
         }
@@ -117,7 +119,7 @@ const DynamicDropdown: React.FC<DynamicDropdownProps> = ({
   // Log custom value usage for analytics
   const logCustomValue = async (customVal: string) => {
     try {
-      await fetch('/api/v1/dropdown-options/log-custom-value/', {
+      await fetch(config.getApiUrl('dropdown-options/log-custom-value/'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

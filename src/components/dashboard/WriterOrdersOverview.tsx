@@ -84,9 +84,11 @@ export function WriterOrdersOverview({ limit = 5 }: WriterOrdersOverviewProps) {
   };
 
   const getPriorityColor = (urgency: string) => {
+    // Server values are Order.URGENCY_LEVELS (low/medium/high), never the
+    // 'urgent'/'very_urgent' labels this used to switch on.
     switch (urgency.toLowerCase()) {
-      case 'very_urgent': return 'error';
-      case 'urgent': return 'warning';
+      case 'high': return 'error';
+      case 'medium': return 'warning';
       default: return 'info';
     }
   };

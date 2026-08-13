@@ -37,20 +37,27 @@ const steps = [
   'Review',
 ];
 
+/**
+ * Every option field below holds the exact value the backend accepts (see
+ * `src/lib/orderOptions.ts`) and is submitted unchanged. The form used to store
+ * display labels and translate them at submit time, which produced values like
+ * `dissertation` and `english` that no backend choice list contains — those
+ * orders were rejected with a 400.
+ */
 export interface OrderFormData {
   // Order Details
   title: string;
-  subject: string; // Will be converted to subject ID
-  type: string; // Will be converted to OrderType enum
-  academicLevel: string; // Will be converted to AcademicLevel enum
+  subject: string;
+  type: string;
+  academicLevel: string;
   pages: number;
   deadline: string;
-  urgency: 'standard' | 'urgent' | 'very_urgent';
-  
+  urgency: 'low' | 'medium' | 'high';
+
   // Requirements
   description: string;
   instructions: string;
-  citation: string; // Will be converted to CitationStyle enum
+  citation: string;
   sources: number;
   
   // Files
@@ -67,7 +74,7 @@ const initialFormData: OrderFormData = {
   academicLevel: '',
   pages: 1,
   deadline: '',
-  urgency: 'standard',
+  urgency: 'low',
   description: '',
   instructions: '',
   citation: '',
@@ -158,71 +165,20 @@ function PlaceOrderPage() {
     }
 
     try {
-      // Helper function to map UI values to API enum values
-      const mapOrderType = (type: string): any => {
-        const mapping: Record<string, string> = {
-          'Essay': 'essay',
-          'Research Paper': 'research paper',
-          'Term Paper': 'research paper',
-          'Thesis': 'thesis',
-          'Dissertation': 'dissertation',
-          'Assignment': 'assignment',
-          'Case Study': 'other',
-          'Lab Report': 'other',
-          'Book Report': 'other',
-          'Homework': 'assignment',
-          'Project': 'other',
-          'Presentation': 'other',
-          'Other': 'other',
-        };
-        return mapping[type] || 'other';
-      };
-
-      const mapAcademicLevel = (level: string): any => {
-        const mapping: Record<string, string> = {
-          'High School': 'college',
-          'Undergraduate': 'bachelors',
-          'Graduate': 'masters',
-          'PhD': 'doctorate',
-          'Masters': 'masters',
-          'Professional': 'masters',
-        };
-        return mapping[level] || 'bachelors';
-      };
-
-      const mapCitationStyle = (style: string): any => {
-        const mapping: Record<string, string> = {
-          'APA': 'apa7',
-          'MLA': 'mla',
-          'Chicago': 'chicago',
-          'Harvard': 'harvard',
-          'IEEE': 'ieee',
-          'Vancouver': 'other',
-          'AMA': 'other',
-          'ASA': 'other',
-          'APSA': 'other',
-          'Turabian': 'chicago',
-          'Other': 'other',
-          'Not Required': 'other',
-        };
-        return mapping[style] || 'other';
-      };
-
-      // Convert form data to API format (using backend field names)
+      // The form already holds backend choice values, so nothing is translated
+      // here. Only the field names differ from the API's.
       const orderRequest: CreateOrderRequest = {
         title: formData.title,
-        // Option values come from the dropdown-options API (already backend
-        // choice values); lowercase only to tolerate the static fallback list.
-        subject: formData.subject.toLowerCase(),
-        type: mapOrderType(formData.type),
-        level: mapAcademicLevel(formData.academicLevel),
+        subject: formData.subject,
+        type: formData.type,
+        level: formData.academicLevel,
         min_pages: formData.pages,
         max_pages: formData.pages,
         deadline: formData.deadline,
         instructions: formData.description + '\n\n' + formData.instructions, // Combine description and instructions
-        style: mapCitationStyle(formData.citation),
+        style: formData.citation,
         sources: formData.sources || 0,
-        urgency: formData.urgency === 'very_urgent' ? 'high' : formData.urgency === 'urgent' ? 'medium' : 'low',
+        urgency: formData.urgency,
         language: 'english US',
         // Note: files will be handled separately as the backend expects multipart upload
       };
