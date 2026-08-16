@@ -8,18 +8,29 @@ import type {
   PaginatedResponse
 } from '@/types/api';
 
+/**
+ * Mirrors `OrderFilterSet` in the backend (`api/filters.py`).
+ *
+ * These are sent as query parameters verbatim, so the keys must be the
+ * snake_case names the filterset declares — a camelCase key is accepted by the
+ * server and silently discarded, which looks identical to "no results". The
+ * array fields serialise as repeated params (`?status=a&status=b`), which the
+ * filterset ORs together.
+ */
 export interface OrderFilters {
   status?: string[];
   subject?: string[];
-  priority?: string[];
-  assignedTo?: number[];
-  createdAfter?: string;
-  createdBefore?: string;
-  dueAfter?: string;
-  dueBefore?: string;
+  type?: string[];
+  level?: string[];
+  urgency?: string[];
+  payment_status?: string[];
+  deadline_after?: string;
+  deadline_before?: string;
+  created_after?: string;
+  created_before?: string;
   search?: string;
-  myOrders?: boolean; // For students to filter their own orders
-  assignedToMe?: boolean; // For writers to filter orders assigned to them
+  assigned_to_me?: boolean;
+  unassigned?: boolean;
 }
 
 export const orderApi = baseApi.injectEndpoints({

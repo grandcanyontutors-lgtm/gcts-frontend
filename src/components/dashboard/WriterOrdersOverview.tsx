@@ -44,8 +44,11 @@ export function WriterOrdersOverview({ limit = 5 }: WriterOrdersOverviewProps) {
   } = useGetOrdersQuery({
     page: 1,
     pageSize: limit,
-    ordering: '-createdAt',
-    filters: { assignedToMe: true }
+    // Both of these were camelCase, which the API accepts and ignores — the
+    // widget was showing every order in newest-first-by-accident order rather
+    // than the writer's own assignments.
+    ordering: '-created_at',
+    filters: { assigned_to_me: true }
   });
 
   const getStatusIcon = (status: string) => {
