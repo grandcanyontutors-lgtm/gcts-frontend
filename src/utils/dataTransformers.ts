@@ -21,11 +21,20 @@ export function transformUser(backendUser: any): User {
 }
 
 /**
- * Map backend user permissions to frontend role
+ * Map backend user permissions to frontend role.
+ *
+ * The login and profile endpoints already return an explicit `role`; only some
+ * nested user objects (e.g. an order's `assigned_to`) come through as raw
+ * Django flags. Deriving from the flags alone silently demoted every admin and
+ * writer to 'student' after login, because `is_superuser`/`is_staff` are absent
+ * from the serialised payload and both checks fell through.
  */
 function mapUserRole(user: any): UserRole {
-  if (user.is_superuser) return 'admin';
-  if (user.is_staff) return 'writer';
+  if (user?.role === 'admin' || user?.role === 'writer' || user?.role === 'student') {
+    return user.role;
+  }
+  if (user?.is_superuser) return 'admin';
+  if (user?.is_staff) return 'writer';
   return 'student';
 }
 

@@ -4,445 +4,459 @@ import {
   Box,
   Container,
   Typography,
-  Grid,
-  Card,
-  CardContent,
   Button,
   Chip,
-  Avatar,
   TextField,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
+  OutlinedInput,
+  Checkbox,
+  ListItemText,
   Paper,
   Tabs,
   Tab,
   IconButton,
-  Menu,
   Tooltip,
+  Badge,
+  Collapse,
+  InputAdornment,
   Fab,
 } from '@mui/material';
 import {
   Add,
   Search,
-  FilterList,
-  Sort,
+  Close,
+  TuneRounded,
   ViewList,
   ViewModule,
   Refresh,
 } from '@mui/icons-material';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { PrivateRoute } from '@/components/auth/PrivateRoute';
 import { OrderCard } from '@/components/orders/OrderCard';
 import { OrderTable } from '@/components/orders/OrderTable';
 import { useGetOrdersQuery } from '@/store/api/orderApi';
-import { useSearchOrdersQuery } from '@/store/api/searchApi';
-import { AdvancedFilters } from '@/components/search/AdvancedFilters';
+import type { OrderFilters } from '@/store/api/orderApi';
+import {
+  SUBJECT_OPTIONS,
+  ORDER_TYPE_OPTIONS,
+  ACADEMIC_LEVEL_OPTIONS,
+  URGENCY_OPTIONS,
+  labelFor,
+  type OrderOption,
+} from '@/lib/orderOptions';
+import { brand, panelSx, primaryButtonSx, AppPageHeader, PageShell } from '@/lib/brand';
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
+const PAGE_SIZE = 12;
+
+/**
+ * Tabs are the status filter.
+ *
+ * Previously the page carried a status `Select` *and* a tab bar, which meant
+ * two controls for one concept and no defined behaviour when they disagreed —
+ * and the tabs did nothing for admins anyway, because the filter-building code
+ * only branched on `role === 'writer'`. Each tab now declares the exact filter
+ * payload it stands for, so adding one is a data change rather than another
+ * arm on a switch over tab indices.
+ *
+ * Status values are the backend's canonical lifecycle vocabulary (see
+ * `Order.ORDER_STATUS`): pending → assigned → in_progress →
+ * solution_submitted → released → (in_revision → released)* → completed.
+ */
+interface OrderTab {
+  label: string;
+  filters: OrderFilters;
 }
 
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
+const TABS_BY_ROLE: Record<string, OrderTab[]> = {
+  student: [
+    { label: 'All', filters: {} },
+    {
+      label: 'Active',
+      filters: {
+        status: ['pending', 'assigned', 'in_progress', 'solution_submitted', 'in_revision'],
+      },
+    },
+    { label: 'Delivered', filters: { status: ['released'] } },
+    { label: 'Completed', filters: { status: ['completed'] } },
+    { label: 'Cancelled', filters: { status: ['cancelled'] } },
+  ],
+  writer: [
+    { label: 'Assigned to me', filters: { assigned_to_me: true } },
+    { label: 'Available', filters: { status: ['pending'], unassigned: true } },
+    { label: 'All', filters: {} },
+  ],
+  admin: [
+    { label: 'All', filters: {} },
+    { label: 'Needs a writer', filters: { status: ['pending'], unassigned: true } },
+    { label: 'In progress', filters: { status: ['assigned', 'in_progress', 'in_revision'] } },
+    { label: 'Awaiting review', filters: { status: ['solution_submitted'] } },
+    { label: 'Completed', filters: { status: ['released', 'completed'] } },
+  ],
+};
 
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`orders-tabpanel-${index}`}
-      aria-labelledby={`orders-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ py: 3 }}>{children}</Box>}
-    </div>
-  );
-}
+// Only fields in the backend's `ordering_fields` allow-list — anything else is
+// rejected server-side and silently falls back to the default order.
+const SORT_OPTIONS: OrderOption[] = [
+  { value: '-created_at', label: 'Newest first' },
+  { value: 'created_at', label: 'Oldest first' },
+  { value: 'deadline', label: 'Deadline: soonest' },
+  { value: '-deadline', label: 'Deadline: latest' },
+  { value: '-price', label: 'Price: highest' },
+  { value: 'price', label: 'Price: lowest' },
+  { value: 'title', label: 'Title: A–Z' },
+];
+
+// The optional facets, behind the "Filters" toggle. Each key is a real
+// `OrderFilterSet` parameter.
+const FACETS: { key: keyof OrderFilters; label: string; options: OrderOption[] }[] = [
+  { key: 'subject', label: 'Subject', options: SUBJECT_OPTIONS },
+  { key: 'type', label: 'Paper type', options: ORDER_TYPE_OPTIONS },
+  { key: 'level', label: 'Academic level', options: ACADEMIC_LEVEL_OPTIONS },
+  { key: 'urgency', label: 'Urgency', options: URGENCY_OPTIONS },
+];
+
+type FacetKey = 'subject' | 'type' | 'level' | 'urgency';
+type FacetState = Record<FacetKey, string[]>;
+
+const EMPTY_FACETS: FacetState = { subject: [], type: [], level: [], urgency: [] };
 
 function OrdersPage() {
   const { user } = useAuth();
+  const role = user?.role ?? 'student';
+  const tabs = TABS_BY_ROLE[role] ?? TABS_BY_ROLE.student;
+
   const [tabValue, setTabValue] = useState(0);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('-created_at');
+  const [facets, setFacets] = useState<FacetState>(EMPTY_FACETS);
+  const [showFacets, setShowFacets] = useState(false);
   const [page, setPage] = useState(1);
-  const [useAdvancedSearch, setUseAdvancedSearch] = useState(false);
-  const [advancedFilters, setAdvancedFilters] = useState<{
-    query: string;
-    status: string[];
-    academicLevel: string[];
-    paperType: string[];
-    dateFrom: string;
-    dateTo: string;
-    sortBy: string;
-    sortOrder: 'asc' | 'desc';
-  }>({
-    query: '',
-    status: [],
-    academicLevel: [],
-    paperType: [],
-    dateFrom: '',
-    dateTo: '',
-    sortBy: '-created_at',
-    sortOrder: 'desc',
-  });
 
-  // Get appropriate filters based on user role and tab
-  const getFilters = () => {
-    const baseFilters: any = {
-      search: searchTerm || undefined,
-      status: statusFilter !== 'all' ? [statusFilter] : undefined,
-    };
+  // Debounced search: the field fires a request per keystroke otherwise, and
+  // each one invalidates the previous result so the list flickers empty.
+  useEffect(() => {
+    const timer = setTimeout(() => setSearchTerm(searchInput.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
-    if (user?.role === 'student') {
-      // myOrders filter is now handled by backend queryset filtering
-    } else if (user?.role === 'writer') {
-      switch (tabValue) {
-        case 0: // My Orders (Assigned)
-          baseFilters.assignedToMe = true;
-          break;
-        case 1: // Available Orders
-          baseFilters.status = ['pending'];
-          delete baseFilters.assignedToMe;
-          break;
-        case 2: // All Orders (Writers can see all for bidding)
-          delete baseFilters.assignedToMe;
-          break;
-      }
+  const activeFacetCount = Object.values(facets).reduce((total, values) => total + values.length, 0);
+
+  const filters: OrderFilters = useMemo(() => {
+    const selected: OrderFilters = { ...tabs[tabValue]?.filters };
+
+    if (searchTerm) selected.search = searchTerm;
+    for (const { key } of FACETS) {
+      const values = facets[key as FacetKey];
+      if (values.length) (selected as Record<string, unknown>)[key] = values;
     }
-    // Admin users see all orders by default
 
-    return baseFilters;
-  };
+    return selected;
+  }, [tabs, tabValue, searchTerm, facets]);
 
-  // Advanced search query
-  const { data: searchResponse, isLoading: searchLoading, error: searchError } = useSearchOrdersQuery({
-    ...advancedFilters,
-    page,
-    pageSize: 12,
-  }, {
-    skip: !useAdvancedSearch,
-  });
-
-  // Regular query for basic search
-  const { data: ordersResponse, isLoading, error, refetch } = useGetOrdersQuery({
-    page,
-    pageSize: 12,
-    ordering: sortBy.replace('createdAt', 'created_at').replace('orderType', 'type'),
-    filters: getFilters(),
-  }, {
-    skip: useAdvancedSearch,
-  });
-
-  // Use appropriate data source
-  const currentData = useAdvancedSearch ? searchResponse : ordersResponse;
-  const currentLoading = useAdvancedSearch ? searchLoading : isLoading;
-  const currentError = useAdvancedSearch ? searchError : error;
-
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
-    setPage(1); // Reset page when changing tabs
-  };
-
-  const handleRefresh = () => {
-    if (useAdvancedSearch) {
-      // Refetch advanced search
-      // searchResponse will be refetched automatically
-    } else {
-      refetch();
-    }
-  };
-
-  const advancedFilterConfig = [
-    {
-      key: 'query',
-      label: 'Search Terms',
-      type: 'text' as const,
-    },
-    {
-      key: 'status',
-      label: 'Status',
-      type: 'multiselect' as const,
-      options: [
-        { value: 'pending', label: 'Pending' },
-        { value: 'assigned', label: 'Assigned' },
-        { value: 'in_progress', label: 'In Progress' },
-        { value: 'solution_submitted', label: 'Under Review' },
-        { value: 'released', label: 'Released' },
-        { value: 'in_revision', label: 'Under Revision' },
-        { value: 'completed', label: 'Completed' },
-        { value: 'cancelled', label: 'Cancelled' },
-      ],
-    },
-    {
-      key: 'academicLevel',
-      label: 'Academic Level',
-      type: 'multiselect' as const,
-      options: [
-        { value: 'college', label: 'College' },
-        { value: 'bachelors', label: 'Bachelor\'s' },
-        { value: 'masters', label: 'Master\'s' },
-        { value: 'phd', label: 'PhD' },
-      ],
-    },
-    {
-      key: 'paperType',
-      label: 'Paper Type',
-      type: 'multiselect' as const,
-      options: [
-        { value: 'essay', label: 'Essay' },
-        { value: 'research paper', label: 'Research Paper' },
-        { value: 'thesis', label: 'Thesis' },
-        { value: 'dissertation', label: 'Dissertation' },
-        { value: 'case study', label: 'Case Study' },
-        { value: 'lab report', label: 'Lab Report' },
-      ],
-    },
-    {
-      key: 'daterange',
-      label: 'Date Range',
-      type: 'daterange' as const,
-    },
-  ];
-
-  const handleAdvancedFiltersChange = (filters: Record<string, any>) => {
-    setAdvancedFilters({ ...advancedFilters, ...filters });
-  };
-
-  const handleApplyAdvancedFilters = () => {
-    setUseAdvancedSearch(true);
+  // Any change to what is being asked for invalidates the page number — page 5
+  // of an unfiltered list is usually past the end of a filtered one, which
+  // renders as an empty result the user reads as "nothing matched".
+  useEffect(() => {
     setPage(1);
+  }, [filters, sortBy]);
+
+  const { data: ordersResponse, isLoading, isFetching, refetch } = useGetOrdersQuery({
+    page,
+    pageSize: PAGE_SIZE,
+    ordering: sortBy,
+    filters,
+  });
+
+  const orders = ordersResponse?.results ?? [];
+  const totalCount = ordersResponse?.count ?? 0;
+
+  const clearFacet = (key: FacetKey, value: string) => {
+    setFacets((current) => ({ ...current, [key]: current[key].filter((v) => v !== value) }));
   };
 
-  const handleResetAdvancedFilters = () => {
-    setAdvancedFilters({
-      query: '',
-      status: [],
-      academicLevel: [],
-      paperType: [],
-      dateFrom: '',
-      dateTo: '',
-      sortBy: '-created_at',
-      sortOrder: 'desc',
-    });
-    setUseAdvancedSearch(false);
-    setPage(1);
-  };
+  const subtitle =
+    role === 'admin'
+      ? 'Every order in the system, newest first.'
+      : role === 'writer'
+      ? 'Your assignments and the work available to pick up.'
+      : 'Track the papers you have ordered.';
 
-  const getPageTitle = () => {
-    if (user?.role === 'student') return 'My Orders';
-    if (user?.role === 'writer') {
-      switch (tabValue) {
-        case 0: return 'My Assigned Orders';
-        case 1: return 'Available Orders';
-        case 2: return 'All Orders';
-        default: return 'Orders';
-      }
-    }
-    return 'Order Management';
-  };
-
-  const getTabLabels = () => {
-    if (user?.role === 'student') {
-      return ['All Orders', 'Active', 'Completed', 'Cancelled'];
-    }
-    if (user?.role === 'writer') {
-      return ['Assigned to Me', 'Available Orders', 'All Orders'];
-    }
-    return ['All Orders', 'Pending', 'In Progress', 'Completed'];
-  };
-
-  const canCreateOrder = user?.role === 'student';
+  const canCreateOrder = role === 'student';
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-        <Box>
-          <Typography variant="h3" component="h1" gutterBottom>
-            {getPageTitle()}
-          </Typography>
-          <Typography variant="h6" color="text.secondary">
-            {user?.role === 'admin' 
-              ? 'Manage all orders in the system'
-              : user?.role === 'writer'
-              ? 'View and manage your writing assignments'
-              : 'Track your academic writing orders'
-            }
-          </Typography>
-        </Box>
-        
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-          <Tooltip title="Refresh">
-            <IconButton onClick={handleRefresh}>
-              <Refresh />
-            </IconButton>
-          </Tooltip>
-          
-          <Tooltip title="Toggle View">
-            <IconButton onClick={() => setViewMode(viewMode === 'grid' ? 'table' : 'grid')}>
-              {viewMode === 'grid' ? <ViewList /> : <ViewModule />}
-            </IconButton>
-          </Tooltip>
+    <PageShell>
+      <Container maxWidth="xl" sx={{ py: { xs: 3, md: 4 } }}>
+        <AppPageHeader
+          title={role === 'admin' ? 'Order management' : 'Orders'}
+          subtitle={subtitle}
+          action={
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              <Tooltip title="Refresh">
+                <IconButton onClick={() => refetch()} sx={{ color: brand.body }}>
+                  <Refresh />
+                </IconButton>
+              </Tooltip>
 
-          {canCreateOrder && (
-            <Button
-              variant="contained"
-              size="large"
-              startIcon={<Add />}
-              component={Link}
-              href="/order/place"
-            >
-              New Order
-            </Button>
-          )}
-        </Box>
-      </Box>
-
-      {/* Advanced Search and Filters */}
-      <AdvancedFilters
-        title="Order Search & Filters"
-        filters={advancedFilterConfig}
-        values={advancedFilters}
-        onChange={handleAdvancedFiltersChange}
-        onApply={handleApplyAdvancedFilters}
-        onReset={handleResetAdvancedFilters}
-        isLoading={currentLoading}
-        showApplyButton={true}
-        collapsible={true}
-        defaultExpanded={useAdvancedSearch}
-      />
-
-      {/* Basic Search (fallback) */}
-      {!useAdvancedSearch && (
-        <Paper sx={{ p: 3, mb: 3 }}>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                InputProps={{
-                  startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} />,
-                }}
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6} md={2}>
-              <FormControl fullWidth>
-                <InputLabel>Status</InputLabel>
-                <Select
-                  value={statusFilter}
-                  label="Status"
-                  onChange={(e) => setStatusFilter(e.target.value)}
+              <Tooltip title={viewMode === 'grid' ? 'Switch to table' : 'Switch to cards'}>
+                <IconButton
+                  onClick={() => setViewMode(viewMode === 'grid' ? 'table' : 'grid')}
+                  sx={{ color: brand.body }}
                 >
-                  <MenuItem value="all">All Status</MenuItem>
-                  <MenuItem value="pending">Pending</MenuItem>
-                  <MenuItem value="in_progress">In Progress</MenuItem>
-                  <MenuItem value="revision">Revision</MenuItem>
-                  <MenuItem value="completed">Completed</MenuItem>
-                  <MenuItem value="cancelled">Cancelled</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
+                  {viewMode === 'grid' ? <ViewList /> : <ViewModule />}
+                </IconButton>
+              </Tooltip>
 
-            <Grid item xs={12} sm={6} md={2}>
-              <FormControl fullWidth>
-                <InputLabel>Sort By</InputLabel>
-                <Select
-                  value={sortBy}
-                  label="Sort By"
-                  onChange={(e) => setSortBy(e.target.value)}
-                >
-                  <MenuItem value="-created_at">Newest First</MenuItem>
-                  <MenuItem value="created_at">Oldest First</MenuItem>
-                  <MenuItem value="-deadline">Deadline (Soon)</MenuItem>
-                  <MenuItem value="deadline">Deadline (Later)</MenuItem>
-                  <MenuItem value="-price">Price (High)</MenuItem>
-                  <MenuItem value="price">Price (Low)</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-
-            <Grid item xs={12} md={4}>
-              <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+              {canCreateOrder && (
                 <Button
                   variant="contained"
-                  startIcon={<Search />}
-                  onClick={() => setUseAdvancedSearch(true)}
+                  startIcon={<Add />}
+                  component={Link}
+                  href="/order/place"
+                  sx={{ ...primaryButtonSx, display: { xs: 'none', sm: 'inline-flex' } }}
                 >
-                  Advanced Search
+                  New order
                 </Button>
-              </Box>
-            </Grid>
-          </Grid>
-        </Paper>
-      )}
+              )}
+            </Box>
+          }
+        />
 
-      {/* Tabs for Role-based Views */}
-      {(user?.role === 'writer' || user?.role === 'admin') && (
-        <Paper sx={{ mb: 3 }}>
+        {/* One control surface: status tabs, then a single row of search / sort
+            / optional facets. This replaced two stacked filter panels, one of
+            which called an endpoint that does not exist. */}
+        <Paper sx={{ ...panelSx, mb: 3, overflow: 'hidden' }}>
           <Tabs
             value={tabValue}
-            onChange={handleTabChange}
-            aria-label="order tabs"
-            variant="fullWidth"
+            onChange={(_, next) => setTabValue(next)}
+            aria-label="Filter orders by status"
+            variant="scrollable"
+            scrollButtons="auto"
+            allowScrollButtonsMobile
+            sx={{
+              px: 1,
+              borderBottom: `1px solid ${brand.line}`,
+              '& .MuiTab-root': {
+                textTransform: 'none',
+                fontWeight: 700,
+                fontSize: 14,
+                minHeight: 52,
+                color: brand.body,
+              },
+              '& .Mui-selected': { color: `${brand.purple} !important` },
+              '& .MuiTabs-indicator': { backgroundColor: brand.purple, height: 3 },
+            }}
           >
-            {getTabLabels().map((label, index) => (
-              <Tab key={index} label={label} />
+            {tabs.map((tab) => (
+              <Tab key={tab.label} label={tab.label} />
             ))}
           </Tabs>
-        </Paper>
-      )}
 
-      {/* Orders Content */}
-      <TabPanel value={tabValue} index={tabValue}>
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 1.5,
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              px: 2,
+              py: 1.5,
+            }}
+          >
+            <TextField
+              size="small"
+              placeholder="Search titles and instructions"
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              sx={{ flex: '1 1 260px', minWidth: 200 }}
+              // On the input itself — a bare `aria-label` prop lands on
+              // TextField's wrapper div, where no screen reader looks for it.
+              inputProps={{ 'aria-label': 'Search orders' }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search sx={{ color: brand.body, fontSize: 20 }} />
+                  </InputAdornment>
+                ),
+                endAdornment: searchInput ? (
+                  <InputAdornment position="end">
+                    <IconButton
+                      size="small"
+                      aria-label="Clear search"
+                      onClick={() => setSearchInput('')}
+                    >
+                      <Close sx={{ fontSize: 18 }} />
+                    </IconButton>
+                  </InputAdornment>
+                ) : null,
+              }}
+            />
+
+            <FormControl size="small" sx={{ minWidth: 180 }}>
+              <InputLabel id="orders-sort-label">Sort by</InputLabel>
+              <Select
+                labelId="orders-sort-label"
+                value={sortBy}
+                label="Sort by"
+                onChange={(event) => setSortBy(event.target.value)}
+              >
+                {SORT_OPTIONS.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <Badge badgeContent={activeFacetCount} color="secondary">
+              <Button
+                startIcon={<TuneRounded />}
+                onClick={() => setShowFacets((open) => !open)}
+                aria-expanded={showFacets}
+                sx={{ textTransform: 'none', fontWeight: 700, color: brand.purple }}
+              >
+                Filters
+              </Button>
+            </Badge>
+
+            <Box sx={{ flexGrow: 1 }} />
+
+            <Typography sx={{ fontSize: 14, fontWeight: 600, color: brand.body }}>
+              {isLoading ? 'Loading…' : `${totalCount} ${totalCount === 1 ? 'order' : 'orders'}`}
+            </Typography>
+          </Box>
+
+          <Collapse in={showFacets} unmountOnExit>
+            <Box
+              sx={{
+                display: 'flex',
+                gap: 1.5,
+                flexWrap: 'wrap',
+                px: 2,
+                pb: 2,
+                borderTop: `1px solid ${brand.line}`,
+                pt: 2,
+              }}
+            >
+              {FACETS.map(({ key, label, options }) => {
+                const facetKey = key as FacetKey;
+                return (
+                  <FormControl key={facetKey} size="small" sx={{ minWidth: 190, flex: '1 1 190px' }}>
+                    <InputLabel id={`orders-facet-${facetKey}`}>{label}</InputLabel>
+                    <Select
+                      multiple
+                      labelId={`orders-facet-${facetKey}`}
+                      value={facets[facetKey]}
+                      input={<OutlinedInput label={label} />}
+                      onChange={(event) =>
+                        setFacets((current) => ({
+                          ...current,
+                          [facetKey]:
+                            typeof event.target.value === 'string'
+                              ? event.target.value.split(',')
+                              : event.target.value,
+                        }))
+                      }
+                      renderValue={(selected) =>
+                        selected.map((value) => labelFor(options, value)).join(', ')
+                      }
+                      MenuProps={{ PaperProps: { sx: { maxHeight: 320 } } }}
+                    >
+                      {options.map((option) => (
+                        <MenuItem key={option.value} value={option.value}>
+                          <Checkbox
+                            size="small"
+                            checked={facets[facetKey].includes(option.value)}
+                            sx={{ color: brand.purple, '&.Mui-checked': { color: brand.purple } }}
+                          />
+                          <ListItemText primary={option.label} />
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                );
+              })}
+            </Box>
+          </Collapse>
+
+          {activeFacetCount > 0 && (
+            <Box
+              sx={{
+                display: 'flex',
+                gap: 1,
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                px: 2,
+                pb: 2,
+              }}
+            >
+              {FACETS.flatMap(({ key, options }) =>
+                facets[key as FacetKey].map((value) => (
+                  <Chip
+                    key={`${key}:${value}`}
+                    size="small"
+                    label={labelFor(options, value)}
+                    onDelete={() => clearFacet(key as FacetKey, value)}
+                    sx={{ bgcolor: brand.lavender, color: brand.ink, fontWeight: 600 }}
+                  />
+                ))
+              )}
+              <Button
+                size="small"
+                onClick={() => setFacets(EMPTY_FACETS)}
+                sx={{ textTransform: 'none', fontWeight: 700, color: brand.body }}
+              >
+                Clear all
+              </Button>
+            </Box>
+          )}
+        </Paper>
+
         {viewMode === 'grid' ? (
-          <OrderCard 
-            orders={currentData?.results || []} 
-            isLoading={currentLoading}
-            userRole={user?.role}
+          <OrderCard
+            orders={orders}
+            isLoading={isLoading || isFetching}
+            userRole={role}
             onPageChange={setPage}
             currentPage={page}
-            totalCount={currentData?.count || 0}
+            totalCount={totalCount}
           />
         ) : (
-          <OrderTable 
-            orders={currentData?.results || []} 
-            isLoading={currentLoading}
-            userRole={user?.role}
+          <OrderTable
+            orders={orders}
+            isLoading={isLoading || isFetching}
+            userRole={role}
             onPageChange={setPage}
             currentPage={page}
-            totalCount={currentData?.count || 0}
+            totalCount={totalCount}
           />
         )}
-      </TabPanel>
 
-
-      {/* Floating Action Button for Mobile */}
-      {canCreateOrder && (
-        <Fab
-          color="primary"
-          aria-label="add order"
-          sx={{
-            position: 'fixed',
-            bottom: 16,
-            right: 16,
-            display: { xs: 'flex', md: 'none' },
-          }}
-          component={Link}
-          href="/order/place"
-        >
-          <Add />
-        </Fab>
-      )}
-    </Container>
+        {canCreateOrder && (
+          <Fab
+            color="primary"
+            aria-label="New order"
+            sx={{
+              position: 'fixed',
+              bottom: 16,
+              right: 16,
+              display: { xs: 'flex', sm: 'none' },
+              bgcolor: brand.purple,
+              '&:hover': { bgcolor: brand.purpleDeep },
+            }}
+            component={Link}
+            href="/order/place"
+          >
+            <Add />
+          </Fab>
+        )}
+      </Container>
+    </PageShell>
   );
 }
 
