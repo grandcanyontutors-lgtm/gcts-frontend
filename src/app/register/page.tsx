@@ -26,6 +26,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { APIClient } from '@/lib/api';
 import { brand, cardSx, primaryButtonSx, outlineButtonSx, Mark, PageShell } from '@/lib/brand';
 
+/**
+ * `otp` and `warning` are present only when the backend runs with
+ * OTP_ECHO_IN_RESPONSE enabled — a testing-only mode for hosts that cannot
+ * send mail. A correctly configured deployment returns neither.
+ */
+interface OtpResponse {
+  message?: string;
+  otp?: string;
+  warning?: string;
+}
+
 export default function RegisterPage() {
   const router = useRouter();
   const { register, isAuthenticated } = useAuth();
@@ -49,6 +60,34 @@ export default function RegisterPage() {
   const [step, setStep] = useState<'details' | 'verify'>('details');
   const [code, setCode] = useState('');
   const [notice, setNotice] = useState('');
+  // Set only when the backend is running with OTP_ECHO_IN_RESPONSE, i.e. on a
+  // deployment that cannot send mail. Kept in its own piece of state so the
+  // banner reads as a warning rather than as part of the normal flow.
+  const [testModeWarning, setTestModeWarning] = useState('');
+
+  /**
+   * Carry over a test-mode code, if the deployment returned one.
+   *
+   * A host that blocks outbound SMTP — Render's free web services drop ports
+   * 25/465/587 — leaves signup with no way to finish, since the code only ever
+   * existed in an email that could not be sent. When the backend is configured
+   * to return the code instead, filling it in here is what makes the flow
+   * completable end to end; the code is still submitted to /verify-otp/ and
+   * still checked, so this shortens the loop rather than skipping it.
+   */
+  const applyOtpResponse = (result: OtpResponse | undefined, sentNotice: string) => {
+    if (result?.otp) {
+      setCode(result.otp);
+      setTestModeWarning(
+        result.warning ||
+          'This deployment returns verification codes in its API responses. It is for testing only.'
+      );
+      setNotice('Test mode: the verification code was filled in for you.');
+      return;
+    }
+    setTestModeWarning('');
+    setNotice(sentNotice);
+  };
 
   // Redirect once authenticated (mirrors the login page behaviour).
   useEffect(() => {
@@ -83,9 +122,11 @@ export default function RegisterPage() {
 
     setIsLoading(true);
     try {
-      await APIClient.post('/generate-otp/', { email: formData.email });
+      const result = await APIClient.post<OtpResponse>('/generate-otp/', {
+        email: formData.email,
+      });
       setStep('verify');
-      setNotice(`We sent an 8-character code to ${formData.email}.`);
+      applyOtpResponse(result, `We sent an 8-character code to ${formData.email}.`);
     } catch (err: any) {
       setError(err?.message || 'Could not send the verification code. Please try again.');
     } finally {
@@ -131,8 +172,10 @@ export default function RegisterPage() {
     setNotice('');
     setIsLoading(true);
     try {
-      await APIClient.post('/generate-otp/', { email: formData.email });
-      setNotice('A new code is on its way.');
+      const result = await APIClient.post<OtpResponse>('/generate-otp/', {
+        email: formData.email,
+      });
+      applyOtpResponse(result, 'A new code is on its way.');
     } catch (err: any) {
       setError(err?.message || 'Could not resend the code. Please try again shortly.');
     } finally {
@@ -182,6 +225,8 @@ export default function RegisterPage() {
             >
               {step === 'details' ? (
                 <>Create your <Mark>account</Mark></>
+              ) : testModeWarning ? (
+                <>Confirm your <Mark>code</Mark></>
               ) : (
                 <>Check your <Mark>email</Mark></>
               )}
@@ -189,9 +234,20 @@ export default function RegisterPage() {
             <Typography sx={{ mt: 1.5, fontSize: 16, fontWeight: 500, color: brand.body }}>
               {step === 'details'
                 ? 'Join GCTS today and get expert help with your work.'
+                : testModeWarning
+                ? // Saying "check your email" here would be a lie — this
+                  // deployment cannot send mail, which is why the code came
+                  // back in the response instead.
+                  `No email was sent for ${formData.email}. Submit the code below to finish creating your account.`
                 : `Enter the code we sent to ${formData.email} to finish creating your account.`}
             </Typography>
           </Box>
+
+          {testModeWarning && (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              {testModeWarning}
+            </Alert>
+          )}
 
           {error && (
             <Alert severity="error" sx={{ mb: 3 }}>
