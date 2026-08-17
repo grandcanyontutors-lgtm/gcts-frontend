@@ -215,15 +215,6 @@ export function WriterOrdersOverview({ limit = 5 }: WriterOrdersOverviewProps) {
                   <Visibility />
                 </IconButton>
                 
-                <IconButton
-                  component={Link}
-                  href={`/orders/${order.id}/messages`}
-                  size="small"
-                  title="Message Student"
-                >
-                  <Message />
-                </IconButton>
-                
                 {order.status === 'in_progress' && (
                   <IconButton
                     component={Link}

@@ -223,10 +223,17 @@ export const orderApi = baseApi.injectEndpoints({
       }),
     }),
 
-    // Order comments — flat /comments/ resource filtered by ?order= (the
-    // nested /orders/{id}/comments/ routes never existed on the backend).
-    // The backend scopes visibility (owner never sees internal notes).
-    getOrderComments: builder.query<OrderComment[], string>({
+    // Order messages.
+    //
+    // One system, two names: the backend stores these as `Comment` rows but its
+    // serializer exposes the field as `message`, and this flat /comments/
+    // resource filtered by ?order= is the only thread the API serves. The
+    // nested /orders/{id}/comments/ routes never existed, and neither did the
+    // /orders/{id}/messages/ ones a parallel messageApi used to call.
+    //
+    // Visibility is enforced server-side: the order's owner never receives
+    // internal (staff) notes.
+    getOrderMessages: builder.query<OrderComment[], string>({
       query: (orderId) => `/comments/?order=${orderId}`,
       transformResponse: (response: any): OrderComment[] => {
         const payload =
@@ -242,7 +249,7 @@ export const orderApi = baseApi.injectEndpoints({
           : [{ type: 'OrderComment', id: orderId }],
     }),
 
-    addOrderComment: builder.mutation<
+    addOrderMessage: builder.mutation<
       OrderComment,
       { orderId: string; content: string; isInternal?: boolean }
     >({
@@ -257,14 +264,16 @@ export const orderApi = baseApi.injectEndpoints({
       ],
     }),
 
-    updateOrderComment: builder.mutation<
+    updateOrderMessage: builder.mutation<
       OrderComment,
       { orderId: string; commentId: number; content: string }
     >({
-      query: ({ orderId, commentId, content }) => ({
-        url: `/orders/${orderId}/comments/${commentId}/`,
+      query: ({ commentId, content }) => ({
+        // Flat resource — /orders/{id}/comments/{cid}/ is not routed, so this
+        // 404'd on every edit.
+        url: `/comments/${commentId}/`,
         method: 'PATCH',
-        body: { content },
+        body: { message: content },
       }),
       invalidatesTags: (result, error, { orderId, commentId }) => [
         { type: 'OrderComment', id: commentId },
@@ -272,12 +281,12 @@ export const orderApi = baseApi.injectEndpoints({
       ],
     }),
 
-    deleteOrderComment: builder.mutation<
+    deleteOrderMessage: builder.mutation<
       void,
       { orderId: string; commentId: number }
     >({
-      query: ({ orderId, commentId }) => ({
-        url: `/orders/${orderId}/comments/${commentId}/`,
+      query: ({ commentId }) => ({
+        url: `/comments/${commentId}/`,
         method: 'DELETE',
       }),
       invalidatesTags: (result, error, { orderId, commentId }) => [
@@ -416,10 +425,10 @@ export const {
   useUploadOrderFileMutation,
   useDeleteOrderFileMutation,
   useLazyDownloadOrderFileQuery,
-  useGetOrderCommentsQuery,
-  useAddOrderCommentMutation,
-  useUpdateOrderCommentMutation,
-  useDeleteOrderCommentMutation,
+  useGetOrderMessagesQuery,
+  useAddOrderMessageMutation,
+  useUpdateOrderMessageMutation,
+  useDeleteOrderMessageMutation,
   useSubmitOrderMutation,
   useApproveOrderMutation,
   useRejectOrderMutation,

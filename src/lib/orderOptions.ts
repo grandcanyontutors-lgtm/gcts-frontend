@@ -141,8 +141,19 @@ export const URGENCY_OPTIONS: (OrderOption & { multiplier: number })[] = [
 ];
 
 /** Human-readable label for a stored value, falling back to the value itself. */
-export function labelFor(options: OrderOption[], value: string): string {
-  return options.find((option) => option.value === value)?.label || value;
+/**
+ * The human label for a stored value.
+ *
+ * Tolerant of what the API actually returns rather than what the types claim:
+ * `Order.subject` is typed as a `Subject` object in `types/api.ts` but arrives
+ * as a plain string, and several fields are optional. An unknown value is
+ * echoed back rather than blanked — a raw `case study` is worth more to the
+ * reader than an empty cell.
+ */
+export function labelFor(options: OrderOption[], value: unknown): string {
+  if (value == null) return '—';
+  const key = typeof value === 'string' ? value : String((value as any)?.name ?? value);
+  return options.find((option) => option.value === key)?.label || key;
 }
 
 /**

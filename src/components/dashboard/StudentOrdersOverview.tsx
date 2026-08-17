@@ -183,17 +183,6 @@ export function StudentOrdersOverview({ limit = 5 }: StudentOrdersOverviewProps)
                   <Visibility />
                 </IconButton>
                 
-                {order.status === 'in_progress' && (
-                  <IconButton
-                    component={Link}
-                    href={`/orders/${order.id}/messages`}
-                    size="small"
-                    title="Message Writer"
-                  >
-                    <Message />
-                  </IconButton>
-                )}
-                
                 {order.status === 'completed' && (
                   <IconButton
                     component={Link}

@@ -2,145 +2,82 @@
 
 import {
   Box,
+  Paper,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
-  Chip,
-  Avatar,
-  IconButton,
   Typography,
-  LinearProgress,
+  Chip,
   Skeleton,
-  Tooltip,
-  Menu,
-  MenuItem,
+  IconButton,
   Pagination,
-  Alert,
+  Tooltip,
 } from '@mui/material';
-import {
-  MoreVert,
-  Visibility,
-  Edit,
-  Delete,
-  Message,
-  Upload,
-  GetApp,
-  Person,
-  Star,
-  Assignment,
-} from '@mui/icons-material';
-import { useState } from 'react';
+import { Visibility, Edit, Assignment } from '@mui/icons-material';
 import Link from 'next/link';
 import { format, formatDistanceToNow } from 'date-fns';
+import { brand, accents } from '@/lib/brand';
+import { orderVisibility, personName, type OrderViewerRole } from '@/lib/orderVisibility';
+import { labelFor, SUBJECT_OPTIONS } from '@/lib/orderOptions';
+import { statusLabel, statusTone } from '@/lib/orderStatus';
 
 interface OrderTableProps {
   orders: any[];
   isLoading: boolean;
-  userRole?: string;
+  userRole?: OrderViewerRole;
   onPageChange: (page: number) => void;
   currentPage: number;
   totalCount: number;
 }
 
-export function OrderTable({ 
-  orders, 
-  isLoading, 
-  userRole, 
-  onPageChange, 
-  currentPage, 
-  totalCount 
+export function OrderTable({
+  orders,
+  isLoading,
+  userRole,
+  onPageChange,
+  currentPage,
+  totalCount,
 }: OrderTableProps) {
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const show = orderVisibility(userRole);
 
-  const handleMenuClick = (event: React.MouseEvent<HTMLElement>, order: any) => {
-    setAnchorEl(event.currentTarget);
-    setSelectedOrder(order);
+  // Built from the same visibility rules as the cards, so the two views cannot
+  // disagree about what a student is allowed to see.
+  const columns = [
+    { key: 'order', label: 'Order' },
+    { key: 'status', label: 'Status' },
+    ...(show.requester ? [{ key: 'requester', label: 'Requester' }] : []),
+    ...(show.writer ? [{ key: 'writer', label: 'Writer' }] : []),
+    { key: 'subject', label: 'Subject' },
+    ...(show.costInList ? [{ key: 'cost', label: 'Cost' }] : []),
+    { key: 'deadline', label: 'Deadline' },
+    { key: 'actions', label: '', align: 'right' as const },
+  ];
+
+  const deadlineTone = (deadline: string) => {
+    const hoursLeft = (new Date(deadline).getTime() - Date.now()) / 36e5;
+    if (hoursLeft < 24) return '#c62828';
+    if (hoursLeft < 72) return accents.pending;
+    return brand.body;
   };
 
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-    setSelectedOrder(null);
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'completed': return 'success';
-      case 'in_progress': return 'info';
-      case 'pending': return 'warning';
-      case 'cancelled': return 'error';
-      case 'revision': return 'secondary';
-      default: return 'default';
-    }
-  };
-
-  const getProgressValue = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'completed': return 100;
-      case 'in_progress': return 70;
-      case 'revision': return 85;
-      case 'pending': return 20;
-      case 'cancelled': return 0;
-      default: return 0;
-    }
-  };
-
-  const getUrgencyColor = (deadline: string) => {
-    const now = new Date();
-    const due = new Date(deadline);
-    const hoursLeft = (due.getTime() - now.getTime()) / (1000 * 60 * 60);
-    
-    if (hoursLeft < 24) return 'error';
-    if (hoursLeft < 72) return 'warning';
-    return 'success';
-  };
-
-  const canEdit = (order: any) => {
-    if (userRole === 'admin') return true;
-    if (userRole === 'student' && order?.status === 'pending') return true;
-    return false;
-  };
-
-  const canDelete = (order: any) => {
-    if (userRole === 'admin') return true;
-    if (userRole === 'student' && order?.status === 'pending') return true;
-    return false;
-  };
+  const canEdit = (order: any) =>
+    userRole === 'admin' || (userRole === 'student' && order?.status === 'pending');
 
   if (isLoading) {
     return (
-      <TableContainer component={Paper}>
+      <TableContainer component={Paper} sx={{ borderRadius: 3, border: `1px solid ${brand.line}` }}>
         <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Order</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Student</TableCell>
-              <TableCell>Writer</TableCell>
-              <TableCell>Subject</TableCell>
-              <TableCell>Price</TableCell>
-              <TableCell>Deadline</TableCell>
-              <TableCell>Actions</TableCell>
-            </TableRow>
-          </TableHead>
           <TableBody>
-            {Array.from({ length: 8 }).map((_, index) => (
-              <TableRow key={index}>
-                <TableCell>
-                  <Skeleton variant="text" width="200px" />
-                  <Skeleton variant="rectangular" width="100%" height={4} sx={{ mt: 1 }} />
-                </TableCell>
-                <TableCell><Skeleton variant="rectangular" width={80} height={24} /></TableCell>
-                <TableCell><Skeleton variant="text" width="120px" /></TableCell>
-                <TableCell><Skeleton variant="text" width="120px" /></TableCell>
-                <TableCell><Skeleton variant="text" width="100px" /></TableCell>
-                <TableCell><Skeleton variant="text" width="60px" /></TableCell>
-                <TableCell><Skeleton variant="text" width="120px" /></TableCell>
-                <TableCell><Skeleton variant="circular" width={32} height={32} /></TableCell>
+            {Array.from({ length: 6 }).map((_, row) => (
+              <TableRow key={row}>
+                {columns.map((column) => (
+                  <TableCell key={column.key}>
+                    <Skeleton variant="text" />
+                  </TableCell>
+                ))}
               </TableRow>
             ))}
           </TableBody>
@@ -151,21 +88,16 @@ export function OrderTable({
 
   if (!orders || orders.length === 0) {
     return (
-      <Paper sx={{ p: 4 }}>
-        <Box sx={{ textAlign: 'center', py: 4 }}>
-          <Assignment sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-          <Typography variant="h5" gutterBottom>
-            No Orders Found
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            {userRole === 'student' 
-              ? "You haven't placed any orders yet."
-              : userRole === 'writer'
-              ? "No orders match your current filters."
-              : "No orders found matching the selected criteria."
-            }
-          </Typography>
-        </Box>
+      <Paper sx={{ p: 6, borderRadius: 3, border: `1px solid ${brand.line}`, textAlign: 'center' }}>
+        <Assignment sx={{ fontSize: 56, color: brand.body, opacity: 0.4, mb: 2 }} />
+        <Typography sx={{ fontSize: 20, fontWeight: 700, color: brand.ink, mb: 0.5 }}>
+          No orders found
+        </Typography>
+        <Typography sx={{ fontSize: 15, color: brand.body }}>
+          {userRole === 'student'
+            ? "You haven't placed any orders yet."
+            : 'Nothing matches the current filters.'}
+        </Typography>
       </Paper>
     );
   }
@@ -174,223 +106,133 @@ export function OrderTable({
 
   return (
     <Box>
-      <TableContainer component={Paper}>
-        <Table>
+      <TableContainer
+        component={Paper}
+        // Narrow viewports scroll the table rather than the page — a table that
+        // widens the document body breaks every other section on the screen.
+        sx={{ borderRadius: 3, border: `1px solid ${brand.line}`, overflowX: 'auto' }}
+      >
+        <Table sx={{ minWidth: 720 }}>
           <TableHead>
-            <TableRow>
-              <TableCell>Order Details</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Student</TableCell>
-              <TableCell>Writer</TableCell>
-              <TableCell>Subject & Pages</TableCell>
-              <TableCell>Price</TableCell>
-              <TableCell>Deadline</TableCell>
-              <TableCell align="center">Actions</TableCell>
+            <TableRow sx={{ bgcolor: brand.paper }}>
+              {columns.map((column) => (
+                <TableCell
+                  key={column.key}
+                  align={column.align}
+                  sx={{ fontWeight: 700, color: brand.ink, whiteSpace: 'nowrap' }}
+                >
+                  {column.label}
+                </TableCell>
+              ))}
             </TableRow>
           </TableHead>
           <TableBody>
-            {orders.map((order) => (
-              <TableRow key={order.id} hover>
-                <TableCell>
-                  <Box>
-                    <Typography variant="subtitle2" gutterBottom>
+            {orders.map((order) => {
+              const tone = statusTone(order?.status);
+              return (
+                <TableRow key={order.id} hover>
+                  <TableCell>
+                    <Typography sx={{ fontSize: 14, fontWeight: 600, color: brand.ink }}>
                       {order.title}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                      ID: #{order.id} • {order.level || 'N/A'}
+                    <Typography sx={{ fontSize: 12.5, color: brand.body }}>
+                      {order?.min_pages ?? 0} {order?.min_pages === 1 ? 'page' : 'pages'}
+                      {order?.level ? ` · ${order.level}` : ''}
                     </Typography>
-                    <LinearProgress
-                      variant="determinate"
-                      value={getProgressValue(order?.status)}
-                      sx={{ height: 4, borderRadius: 2 }}
-                      color={getStatusColor(order?.status) as any}
-                    />
-                  </Box>
-                </TableCell>
+                  </TableCell>
 
-                <TableCell>
-                  <Chip
-                    label={order?.status?.replace('_', ' ') || 'Unknown'}
-                    color={getStatusColor(order?.status) as any}
-                    size="small"
-                    sx={{ textTransform: 'capitalize' }}
-                  />
-                </TableCell>
-
-                <TableCell>
-                  {order?.user ? (
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Avatar sx={{ mr: 1, bgcolor: 'success.main', width: 32, height: 32 }}>
-                        <Person sx={{ fontSize: 16 }} />
-                      </Avatar>
-                      <Box>
-                        <Typography variant="body2">
-                          {order.user.first_name || ''} {order.user.last_name || ''}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {order.user.email || ''}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  ) : (
-                    <Typography variant="body2" color="text.secondary">
-                      Unknown Student
-                    </Typography>
-                  )}
-                </TableCell>
-
-                <TableCell>
-                  {order?.assigned_to ? (
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Avatar sx={{ mr: 1, bgcolor: 'info.main', width: 32, height: 32 }}>
-                        <Person sx={{ fontSize: 16 }} />
-                      </Avatar>
-                      <Box>
-                        <Typography variant="body2">
-                          {order.assigned_to.first_name || ''} {order.assigned_to.last_name || ''}
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <Typography variant="caption" color="text.secondary">
-                            {order.assigned_to.email || ''}
-                          </Typography>
-                          {order.assigned_to.rating && (
-                            <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
-                              <Star sx={{ fontSize: 12, color: 'warning.main' }} />
-                              <Typography variant="caption" sx={{ ml: 0.5 }}>
-                                {order.assigned_to.rating.toFixed(1)}
-                              </Typography>
-                            </Box>
-                          )}
-                        </Box>
-                      </Box>
-                    </Box>
-                  ) : (
-                    <Typography variant="body2" color="text.secondary">
-                      Not assigned
-                    </Typography>
-                  )}
-                </TableCell>
-
-                <TableCell>
-                  <Box>
+                  <TableCell>
                     <Chip
-                      label={order?.subject || 'General'}
-                      color="primary"
+                      label={statusLabel(order?.status)}
                       size="small"
-                      variant="outlined"
-                      sx={{ mb: 0.5 }}
+                      sx={{ bgcolor: `${tone}1a`, color: tone, fontWeight: 700 }}
                     />
-                    <Typography variant="body2" color="text.secondary">
-                      {order?.min_pages || 0} pages
-                    </Typography>
-                  </Box>
-                </TableCell>
+                  </TableCell>
 
-                <TableCell>
-                  {order?.price ? (
-                    <Typography variant="subtitle2" color="success.main">
-                      ${order.price}
-                    </Typography>
-                  ) : (
-                    <Typography variant="body2" color="text.secondary">
-                      TBD
-                    </Typography>
+                  {show.requester && (
+                    <TableCell>
+                      <Typography sx={{ fontSize: 13.5, color: brand.ink }}>
+                        {personName(order?.user) || '—'}
+                      </Typography>
+                    </TableCell>
                   )}
-                </TableCell>
 
-                <TableCell>
-                  {order?.deadline ? (
-                    <Box>
-                      <Typography variant="body2">
-                        {format(new Date(order.deadline), 'MMM dd, yyyy')}
+                  {show.writer && (
+                    <TableCell>
+                      <Typography sx={{ fontSize: 13.5, color: brand.body }}>
+                        {personName(order?.assigned_to) || 'Unassigned'}
                       </Typography>
-                      <Typography variant="body2">
-                        {format(new Date(order.deadline), 'HH:mm')}
-                      </Typography>
-                      <Typography 
-                        variant="caption" 
-                        color={`${getUrgencyColor(order.deadline)}.main`}
-                      >
-                        {formatDistanceToNow(new Date(order.deadline), { addSuffix: true })}
-                      </Typography>
-                    </Box>
-                  ) : (
-                    <Typography variant="body2" color="text.secondary">
-                      No deadline set
-                    </Typography>
+                    </TableCell>
                   )}
-                </TableCell>
 
-                <TableCell align="center">
-                  <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
-                    <Tooltip title="View Details">
+                  <TableCell>
+                    <Typography sx={{ fontSize: 13.5, color: brand.body }}>
+                      {labelFor(SUBJECT_OPTIONS, order?.subject)}
+                    </Typography>
+                  </TableCell>
+
+                  {show.costInList && (
+                    <TableCell>
+                      <Typography sx={{ fontSize: 13.5, fontWeight: 700, color: accents.money }}>
+                        {order?.price != null ? `$${order.price}` : '—'}
+                      </Typography>
+                    </TableCell>
+                  )}
+
+                  <TableCell>
+                    {order?.deadline ? (
+                      <>
+                        <Typography sx={{ fontSize: 13.5, color: brand.ink }}>
+                          {format(new Date(order.deadline), 'MMM d, yyyy')}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            fontSize: 12.5,
+                            fontWeight: 600,
+                            color: deadlineTone(order.deadline),
+                          }}
+                        >
+                          {formatDistanceToNow(new Date(order.deadline), { addSuffix: true })}
+                        </Typography>
+                      </>
+                    ) : (
+                      <Typography sx={{ fontSize: 13.5, color: brand.body }}>—</Typography>
+                    )}
+                  </TableCell>
+
+                  <TableCell align="right">
+                    <Tooltip title="View details">
                       <IconButton
                         component={Link}
                         href={`/orders/${order.id}`}
                         size="small"
+                        sx={{ color: brand.purple }}
                       >
-                        <Visibility />
+                        <Visibility fontSize="small" />
                       </IconButton>
                     </Tooltip>
-                    
-                    {/* Role-specific action buttons */}
-                    {userRole === 'student' && order?.status !== 'pending' && order?.status !== 'cancelled' && (
-                      <Tooltip title="Messages">
+                    {canEdit(order) && (
+                      <Tooltip title="Edit order">
                         <IconButton
                           component={Link}
-                          href={`/orders/${order.id}/messages`}
+                          href={`/orders/${order.id}/edit`}
                           size="small"
+                          sx={{ color: brand.body }}
                         >
-                          <Message />
+                          <Edit fontSize="small" />
                         </IconButton>
                       </Tooltip>
                     )}
-                    
-                    {userRole === 'writer' && order?.assigned_to?.id === order.currentUserId && (
-                      <>
-                        {order?.status === 'in_progress' && (
-                          <Tooltip title="Submit Work">
-                            <IconButton
-                              component={Link}
-                              href={`/orders/${order.id}/submit`}
-                              size="small"
-                              color="primary"
-                            >
-                              <Upload />
-                            </IconButton>
-                          </Tooltip>
-                        )}
-                        <Tooltip title="Messages">
-                          <IconButton
-                            component={Link}
-                            href={`/orders/${order.id}/messages`}
-                            size="small"
-                          >
-                            <Message />
-                          </IconButton>
-                        </Tooltip>
-                      </>
-                    )}
-                    
-                    <Tooltip title="More actions">
-                      <IconButton
-                        onClick={(e) => handleMenuClick(e, order)}
-                        size="small"
-                      >
-                        <MoreVert />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
-                </TableCell>
-              </TableRow>
-            ))}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </TableContainer>
 
-      {/* Pagination */}
       {pageCount > 1 && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
           <Pagination
             count={pageCount}
             page={currentPage}
@@ -399,40 +241,6 @@ export function OrderTable({
           />
         </Box>
       )}
-
-      {/* Action Menu */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-      >
-        <MenuItem component={Link} href={`/orders/${selectedOrder?.id}`}>
-          <Visibility sx={{ mr: 1 }} />
-          View Details
-        </MenuItem>
-        
-        {canEdit(selectedOrder) && (
-          <MenuItem component={Link} href={`/orders/${selectedOrder?.id}/edit`}>
-            <Edit sx={{ mr: 1 }} />
-            Edit Order
-          </MenuItem>
-        )}
-        
-        {selectedOrder?.status !== 'cancelled' && selectedOrder?.status !== 'completed' && (
-          <MenuItem component={Link} href={`/orders/${selectedOrder?.id}/messages`}>
-            <Message sx={{ mr: 1 }} />
-            Messages
-          </MenuItem>
-        )}
-        
-        
-        {canDelete(selectedOrder) && (
-          <MenuItem sx={{ color: 'error.main' }}>
-            <Delete sx={{ mr: 1 }} />
-            Delete Order
-          </MenuItem>
-        )}
-      </Menu>
     </Box>
   );
 }

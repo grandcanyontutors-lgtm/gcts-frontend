@@ -74,7 +74,10 @@ import {
   useUploadOrderFileMutation,
 } from '@/store/api/orderApi';
 import { useGetWritersQuery } from '@/store/api/userApi';
-import { OrderComments } from '@/components/orders/OrderComments';
+import { OrderMessages } from '@/components/orders/OrderMessages';
+import { orderVisibility, personName } from '@/lib/orderVisibility';
+import { labelFor, SUBJECT_OPTIONS, ACADEMIC_LEVEL_OPTIONS, ORDER_TYPE_OPTIONS } from '@/lib/orderOptions';
+import { ORDER_STEPS, activeStep, statusLabel } from '@/lib/orderStatus';
 
 interface OrderDetailsPageProps {
   params: {
@@ -109,6 +112,9 @@ function OrderDetailsPage({ params }: OrderDetailsPageProps) {
   const [revisionError, setRevisionError] = useState('');
 
   const isOwner = order?.user?.id === user?.id;
+  // Same rules as the order list — a student is never shown the writer, and
+  // is not shown their own name back.
+  const show = orderVisibility(user?.role);
   const solutionFiles = (order?.files ?? []).filter(
     (f: any) => typeof f === 'object' && f?.fileType === 'solution'
   );
@@ -283,34 +289,15 @@ function OrderDetailsPage({ params }: OrderDetailsPageProps) {
     return false;
   };
 
+  const canSubmitWork =
+    user?.role === 'writer' &&
+    order?.assigned_to?.id === user.id &&
+    order?.status === 'in_progress';
+
   const canUpdateStatus = () => {
     return user?.role === 'admin' || (user?.role === 'writer' && order?.assigned_to?.id === user.id);
   };
 
-  const getOrderSteps = () => {
-    return [
-      'Order Placed',
-      'Writer Assigned',
-      'Work in Progress',
-      'Admin Review',
-      'Solution Released',
-      'Completed'
-    ];
-  };
-
-  const getActiveStep = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'pending': return 0;
-      case 'assigned': return 1;
-      case 'in_progress': return 2;
-      case 'in_revision': return 2;
-      case 'solution_submitted': return 3;
-      case 'released': return 4;
-      case 'completed': return 5;
-      case 'cancelled': return -1;
-      default: return 0;
-    }
-  };
 
   if (isLoading) {
     return (
@@ -361,9 +348,8 @@ function OrderDetailsPage({ params }: OrderDetailsPageProps) {
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
           <Chip
             icon={getStatusIcon(order.status)}
-            label={order.status.replace('_', ' ')}
+            label={statusLabel(order.status)}
             color={getStatusColor(order.status) as any}
-            sx={{ textTransform: 'capitalize' }}
           />
           <IconButton onClick={handleMenuClick}>
             <MoreVert />
@@ -375,10 +361,10 @@ function OrderDetailsPage({ params }: OrderDetailsPageProps) {
       {order.status !== 'cancelled' && (
         <Paper sx={{ p: 3, mb: 3 }}>
           <Typography variant="h6" gutterBottom>
-            Order Progress
+            Progress
           </Typography>
-          <Stepper activeStep={getActiveStep(order.status)} alternativeLabel>
-            {getOrderSteps().map((label) => (
+          <Stepper activeStep={activeStep(order.status)} alternativeLabel>
+            {ORDER_STEPS.map((label) => (
               <Step key={label}>
                 <StepLabel>{label}</StepLabel>
               </Step>
@@ -397,15 +383,6 @@ function OrderDetailsPage({ params }: OrderDetailsPageProps) {
               </Typography>
               <Divider sx={{ mb: 2 }} />
               
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="subtitle2" gutterBottom>
-                  Description
-                </Typography>
-                <Typography variant="body1" sx={{ mb: 2 }}>
-                  {order.description}
-                </Typography>
-              </Box>
-
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={6}>
                   <List dense>
@@ -415,7 +392,7 @@ function OrderDetailsPage({ params }: OrderDetailsPageProps) {
                       </ListItemIcon>
                       <ListItemText
                         primary="Order Type"
-                        secondary={order.type?.replace('_', ' ')}
+                        secondary={labelFor(ORDER_TYPE_OPTIONS, order.type)}
                       />
                     </ListItem>
                     <ListItem>
@@ -424,7 +401,7 @@ function OrderDetailsPage({ params }: OrderDetailsPageProps) {
                       </ListItemIcon>
                       <ListItemText
                         primary="Academic Level"
-                        secondary={order.level}
+                        secondary={labelFor(ACADEMIC_LEVEL_OPTIONS, order.level)}
                       />
                     </ListItem>
                     <ListItem>
@@ -433,7 +410,7 @@ function OrderDetailsPage({ params }: OrderDetailsPageProps) {
                       </ListItemIcon>
                       <ListItemText
                         primary="Subject"
-                        secondary={order.subject?.name || 'General'}
+                        secondary={labelFor(SUBJECT_OPTIONS, order.subject)}
                       />
                     </ListItem>
                   </List>
@@ -451,11 +428,13 @@ function OrderDetailsPage({ params }: OrderDetailsPageProps) {
                     </ListItem>
                     <ListItem>
                       <ListItemIcon>
-                        <AttachMoney />
+                        <Assignment />
                       </ListItemIcon>
                       <ListItemText
-                        primary="Price"
-                        secondary={`$${order.price}`}
+                        primary="Placed"
+                        secondary={
+                          order.created_at ? format(new Date(order.created_at), 'PPP') : '—'
+                        }
                       />
                     </ListItem>
                     <ListItem>
@@ -487,7 +466,7 @@ function OrderDetailsPage({ params }: OrderDetailsPageProps) {
               {order.instructions && (
                 <Box sx={{ mt: 3 }}>
                   <Typography variant="subtitle2" gutterBottom>
-                    Special Instructions
+                    Instructions
                   </Typography>
                   <Paper sx={{ p: 2, bgcolor: 'background.default' }}>
                     <Typography variant="body2">
@@ -500,30 +479,8 @@ function OrderDetailsPage({ params }: OrderDetailsPageProps) {
             </CardContent>
           </Card>
 
-          {/* Order History/Timeline */}
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Order History
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
-
-              <List>
-                <ListItem>
-                  <ListItemIcon>
-                    <Assignment />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary="Order created"
-                    secondary={order.created_at ? format(new Date(order.created_at), 'PPP p') : 'N/A'}
-                  />
-                </ListItem>
-              </List>
-            </CardContent>
-          </Card>
-
-          {/* Requester ↔ admin communication thread */}
-          <OrderComments orderId={order.id} isAdmin={isAdmin} />
+          {/* The one communication thread on an order */}
+          <OrderMessages orderId={order.id} isAdmin={isAdmin} />
         </Grid>
 
         {/* Sidebar */}
@@ -664,7 +621,7 @@ function OrderDetailsPage({ params }: OrderDetailsPageProps) {
           )}
 
           {/* Payment — off-site; the admin confirms cost and shares instructions */}
-          {(isAdmin || order.user?.id === user?.id) && (
+          {(isAdmin || isOwner) && (
             <Card sx={{ mb: 3 }}>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
@@ -717,54 +674,44 @@ function OrderDetailsPage({ params }: OrderDetailsPageProps) {
             </Card>
           )}
 
-          {/* Student Info */}
-          {order.user && (
+          {/* Requester — staff only. Showing a student their own name and
+              email back on their own order is pure noise. */}
+          {show.requester && order.user && (
             <Card sx={{ mb: 3 }}>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
-                  Student
+                  Requester
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                   <Avatar sx={{ mr: 2, bgcolor: 'success.main' }}>
                     <Person />
                   </Avatar>
-                  <Box>
+                  <Box sx={{ minWidth: 0 }}>
                     <Typography variant="subtitle1">
-                      {order.user.firstName} {order.user.lastName}
+                      {personName(order.user) || 'Unknown'}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Student ID: {order.user.id}
+                    <Typography variant="body2" color="text.secondary" noWrap>
+                      {order.user.email}
                     </Typography>
                   </Box>
                 </Box>
-                <List dense>
-                  <ListItem>
-                    <ListItemIcon>
-                      <Email />
-                    </ListItemIcon>
-                    <ListItemText primary={order.user.email} />
-                  </ListItem>
-                </List>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<Message />}
-                  component={Link}
-                  href={`/orders/${order.id}/messages`}
-                  sx={{ mt: 2 }}
-                >
-                  Message Student
-                </Button>
+                <Typography variant="caption" color="text.secondary">
+                  Reply on the order's message thread — it is the record of what
+                  was agreed.
+                </Typography>
               </CardContent>
             </Card>
           )}
 
-          {/* Writer Info */}
-          {order.assigned_to ? (
+          {/* Writer — admin only. GCTS has no direct student↔writer
+              relationship, so naming the writer to a requester would imply one
+              and invite contact that is meant to go through the admin. Writers
+              do not need it either: they see their own assignment. */}
+          {show.writer && (order.assigned_to ? (
             <Card sx={{ mb: 3 }}>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
-                  Assigned Writer
+                  Writer
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                   <Avatar sx={{ mr: 2, bgcolor: 'info.main' }}>
@@ -772,10 +719,10 @@ function OrderDetailsPage({ params }: OrderDetailsPageProps) {
                   </Avatar>
                   <Box>
                     <Typography variant="subtitle1">
-                      {order.assigned_to.firstName} {order.assigned_to.lastName}
+                      {personName(order.assigned_to) || 'Unknown'}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Writer ID: {order.assigned_to.id}
+                    <Typography variant="body2" color="text.secondary" noWrap>
+                      {order.assigned_to.email}
                     </Typography>
                   </Box>
                 </Box>
@@ -787,16 +734,6 @@ function OrderDetailsPage({ params }: OrderDetailsPageProps) {
                     <ListItemText primary={order.assigned_to.email} />
                   </ListItem>
                 </List>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<Message />}
-                  component={Link}
-                  href={`/orders/${order.id}/messages`}
-                  sx={{ mt: 2 }}
-                >
-                  Message Writer
-                </Button>
               </CardContent>
             </Card>
           ) : (
@@ -809,7 +746,7 @@ function OrderDetailsPage({ params }: OrderDetailsPageProps) {
                   No writer assigned yet. The admin assigns a writer once the order
                   is confirmed.
                 </Alert>
-                {isAdmin && (
+                {show.assignment && (
                   <Button
                     fullWidth
                     variant="contained"
@@ -821,9 +758,12 @@ function OrderDetailsPage({ params }: OrderDetailsPageProps) {
                 )}
               </CardContent>
             </Card>
-          )}
+          ))}
 
-          {/* Quick Actions */}
+          {/* Quick Actions — rendered only when there is at least one. For a
+              student on an order already in progress every entry is gated off,
+              and the card showed as an empty titled box. */}
+          {(canEdit() || canUpdateStatus() || canSubmitWork) && (
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -851,7 +791,7 @@ function OrderDetailsPage({ params }: OrderDetailsPageProps) {
                   </Button>
                 )}
                 
-                {user?.role === 'writer' && order.assigned_to?.id === user.id && order.status === 'in_progress' && (
+                {canSubmitWork && (
                   <Button
                     variant="contained"
                     startIcon={<Upload />}
@@ -861,18 +801,10 @@ function OrderDetailsPage({ params }: OrderDetailsPageProps) {
                     Submit Work
                   </Button>
                 )}
-                
-                <Button
-                  variant="outlined"
-                  startIcon={<Message />}
-                  component={Link}
-                  href={`/orders/${order.id}/messages`}
-                >
-                  View Messages
-                </Button>
               </Box>
             </CardContent>
           </Card>
+          )}
         </Grid>
       </Grid>
 
@@ -888,11 +820,6 @@ function OrderDetailsPage({ params }: OrderDetailsPageProps) {
             Edit Order
           </MenuItem>
         )}
-        
-        <MenuItem component={Link} href={`/orders/${order.id}/messages`}>
-          <Message sx={{ mr: 1 }} />
-          Messages
-        </MenuItem>
         
         {canUpdateStatus() && (
           <MenuItem onClick={() => { setStatusDialog(true); handleMenuClose(); }}>
