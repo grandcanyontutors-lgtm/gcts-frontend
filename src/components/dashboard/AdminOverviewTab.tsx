@@ -1,289 +1,341 @@
 'use client';
 
+import { Box, Grid, Typography, Chip, Button, Skeleton, Alert } from '@mui/material';
 import {
-  Box,
-  Grid,
-  Card,
-  CardContent,
-  Typography,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
-  Avatar,
-  Chip,
-  LinearProgress,
-  Alert,
-  Paper,
-  Skeleton,
-} from '@mui/material';
-import {
-  TrendingUp,
-  Warning,
-  CheckCircle,
-  Error,
-  People,
-  Assignment,
   AttachMoney,
-  Schedule,
+  PersonAddAlt1,
+  RateReview,
+  Autorenew,
+  ChevronRight,
+  CheckCircleOutline,
 } from '@mui/icons-material';
-import { useGetDashboardStatsQuery, useGetSystemHealthQuery } from '@/store/api/adminApi';
-import { useGetUserActivityQuery } from '@/store/api/userApi';
-import { format } from 'date-fns';
+import Link from 'next/link';
+import { formatDistanceToNow } from 'date-fns';
+import { useGetOrdersQuery } from '@/store/api/orderApi';
+import { useGetReviewsQuery } from '@/store/api/reviewApi';
+import { brand, accents, panelSx } from '@/lib/brand';
+import { personName } from '@/lib/orderVisibility';
+
+/**
+ * What needs the admin right now.
+ *
+ * This tab used to show a System Health panel and a 7-day activity chart, both
+ * reading endpoints that do not exist (`/admin/system-health/`,
+ * `/admin/user-activity/` — 404), and a "Key Performance Indicators" panel
+ * whose four figures were hardcoded literals: 12.3% user growth, 89.5%
+ * completion, $245 average order value, 4.7 satisfaction. None of it came from
+ * the database, and the last of those is the worst kind of dashboard content —
+ * confident, precise, and invented.
+ *
+ * What replaced it is the admin's actual job. GCTS runs on the admin being the
+ * hinge between student and writer: they confirm the cost, share off-site
+ * payment instructions, assign the writer, review the solution before it
+ * reaches the requester, and approve reviews before they appear publicly.
+ * Every queue below is one of those steps, counted from real order state, and
+ * every one links to the filtered list that clears it.
+ */
+
+interface QueueDef {
+  key: string;
+  label: string;
+  hint: string;
+  icon: React.ReactNode;
+  color: string;
+  href: string;
+}
+
+const QUEUES: QueueDef[] = [
+  {
+    key: 'cost',
+    label: 'Awaiting cost',
+    hint: 'Confirm the price and send payment instructions',
+    icon: <AttachMoney />,
+    color: accents.money,
+    href: '/orders?queue=cost',
+  },
+  {
+    key: 'assign',
+    label: 'Needs a writer',
+    hint: 'Priced and unassigned',
+    icon: <PersonAddAlt1 />,
+    color: accents.pending,
+    href: '/orders?queue=assign',
+  },
+  {
+    key: 'review',
+    label: 'Solutions to review',
+    hint: 'Check before releasing to the requester',
+    icon: <RateReview />,
+    color: accents.active,
+    href: '/orders?queue=review',
+  },
+  {
+    key: 'revision',
+    label: 'In revision',
+    hint: 'Requester asked for changes',
+    icon: <Autorenew />,
+    color: accents.pending,
+    href: '/orders?queue=revision',
+  },
+];
+
+function QueueCard({
+  queue,
+  count,
+  loading,
+}: {
+  queue: QueueDef;
+  count: number;
+  loading: boolean;
+}) {
+  const idle = !loading && count === 0;
+  return (
+    <Box
+      component={Link}
+      href={queue.href}
+      sx={{
+        ...panelSx,
+        display: 'block',
+        p: 2.5,
+        height: '100%',
+        textDecoration: 'none',
+        transition: 'all .2s',
+        opacity: idle ? 0.65 : 1,
+        '&:hover': {
+          transform: 'translateY(-3px)',
+          borderColor: 'rgba(156,39,176,0.25)',
+        },
+      }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
+        <Box
+          sx={{
+            width: 40,
+            height: 40,
+            borderRadius: 2,
+            display: 'grid',
+            placeItems: 'center',
+            bgcolor: `${queue.color}1a`,
+            color: queue.color,
+            '& svg': { fontSize: 21 },
+          }}
+        >
+          {queue.icon}
+        </Box>
+        {loading ? (
+          <Skeleton variant="text" width={44} height={40} />
+        ) : (
+          <Typography
+            sx={{ fontSize: 30, fontWeight: 800, lineHeight: 1, color: idle ? brand.body : brand.ink }}
+          >
+            {count}
+          </Typography>
+        )}
+      </Box>
+      <Typography sx={{ fontSize: 14.5, fontWeight: 700, color: brand.ink }}>
+        {queue.label}
+      </Typography>
+      <Typography sx={{ fontSize: 12.5, color: brand.body, mt: 0.25 }}>{queue.hint}</Typography>
+    </Box>
+  );
+}
 
 export function AdminOverviewTab() {
-  const { data: dashboardStats, isLoading: statsLoading } = useGetDashboardStatsQuery();
-  const { data: systemHealth, isLoading: healthLoading } = useGetSystemHealthQuery();
-  const { data: userActivity, isLoading: activityLoading } = useGetUserActivityQuery({ period: '7d' });
+  // pageSize 1 — these are counts. The total arrives in the pagination meta,
+  // so there is no reason to transfer the rows themselves.
+  //
+  // Written out rather than wrapped in a helper: a hook called from a helper
+  // is still a hook, and the rules-of-hooks guarantee comes from the call
+  // order being literally visible here.
+  const COUNT_ARGS = { page: 1, pageSize: 1 };
+  const awaitingCost = useGetOrdersQuery({
+    ...COUNT_ARGS,
+    filters: { status: ['pending'], payment_status: ['pending'] },
+  });
+  const needsWriter = useGetOrdersQuery({
+    ...COUNT_ARGS,
+    filters: { status: ['pending'], unassigned: true },
+  });
+  const toReview = useGetOrdersQuery({
+    ...COUNT_ARGS,
+    filters: { status: ['solution_submitted'] },
+  });
+  const inRevision = useGetOrdersQuery({
+    ...COUNT_ARGS,
+    filters: { status: ['in_revision'] },
+  });
 
-  const getHealthColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'healthy': return 'success';
-      case 'warning': return 'warning';
-      case 'critical': return 'error';
-      default: return 'info';
-    }
+  // The five oldest things still waiting on the admin, so the tab answers
+  // "what do I do next" and not only "how much is there".
+  const { data: oldest, isLoading: oldestLoading } = useGetOrdersQuery({
+    page: 1,
+    pageSize: 5,
+    ordering: 'created_at',
+    filters: { status: ['pending', 'solution_submitted', 'in_revision'] },
+  });
+
+  const { data: pendingReviews, isLoading: reviewsLoading } = useGetReviewsQuery({
+    status: 'pending',
+    pageSize: 5,
+  });
+
+  const counts: Record<string, { count: number; loading: boolean }> = {
+    cost: { count: awaitingCost.data?.count ?? 0, loading: awaitingCost.isLoading },
+    assign: { count: needsWriter.data?.count ?? 0, loading: needsWriter.isLoading },
+    review: { count: toReview.data?.count ?? 0, loading: toReview.isLoading },
+    revision: { count: inRevision.data?.count ?? 0, loading: inRevision.isLoading },
   };
 
-  const getHealthIcon = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'healthy': return <CheckCircle />;
-      case 'warning': return <Warning />;
-      case 'critical': return <Error />;
-      default: return <Schedule />;
-    }
-  };
+  const totalWaiting = Object.values(counts).reduce((sum, c) => sum + c.count, 0);
+  const anyLoading = Object.values(counts).some((c) => c.loading);
+
+  const reviewRows: any[] = Array.isArray(pendingReviews)
+    ? pendingReviews
+    : pendingReviews?.results ?? [];
 
   return (
     <Box>
+      <Typography sx={{ fontSize: 18, fontWeight: 800, color: brand.ink, mb: 0.5 }}>
+        Needs your attention
+      </Typography>
+      <Typography sx={{ fontSize: 14, color: brand.body, mb: 2.5 }}>
+        Each queue is a step only an admin can clear.
+      </Typography>
+
+      <Grid container spacing={2} sx={{ mb: 4 }}>
+        {QUEUES.map((queue) => (
+          <Grid item xs={6} md={3} key={queue.key}>
+            <QueueCard
+              queue={queue}
+              count={counts[queue.key].count}
+              loading={counts[queue.key].loading}
+            />
+          </Grid>
+        ))}
+      </Grid>
+
+      {!anyLoading && totalWaiting === 0 && (
+        <Alert icon={<CheckCircleOutline />} severity="success" sx={{ mb: 4 }}>
+          Nothing is waiting on you right now.
+        </Alert>
+      )}
+
       <Grid container spacing={3}>
-        {/* System Health */}
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                System Health
+        <Grid item xs={12} md={7}>
+          <Box sx={{ ...panelSx, p: 3, height: '100%' }}>
+            <Box
+              sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}
+            >
+              <Typography sx={{ fontSize: 16, fontWeight: 700, color: brand.ink }}>
+                Waiting longest
               </Typography>
-              {healthLoading ? (
-                <Box>
-                  {Array.from({ length: 4 }).map((_, index) => (
-                    <Box key={index} sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <Skeleton variant="circular" width={40} height={40} sx={{ mr: 2 }} />
-                      <Box sx={{ flexGrow: 1 }}>
-                        <Skeleton variant="text" width="60%" />
-                        <Skeleton variant="text" width="40%" />
-                      </Box>
-                    </Box>
-                  ))}
-                </Box>
-              ) : systemHealth ? (
-                <List>
-                  <ListItem>
-                    <ListItemAvatar>
-                      <Avatar sx={{ bgcolor: `${getHealthColor(systemHealth.database.status)}.main` }}>
-                        {getHealthIcon(systemHealth.database.status)}
-                      </Avatar>
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary="Database"
-                      secondary={`Response time: ${systemHealth.database.responseTime}ms`}
-                    />
-                    <Chip
-                      label={systemHealth.database.status}
-                      color={getHealthColor(systemHealth.database.status) as any}
-                      size="small"
-                    />
-                  </ListItem>
-                  
-                  <ListItem>
-                    <ListItemAvatar>
-                      <Avatar sx={{ bgcolor: `${getHealthColor(systemHealth.redis.status)}.main` }}>
-                        {getHealthIcon(systemHealth.redis.status)}
-                      </Avatar>
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary="Cache (Redis)"
-                      secondary={`Response time: ${systemHealth.redis.responseTime}ms`}
-                    />
-                    <Chip
-                      label={systemHealth.redis.status}
-                      color={getHealthColor(systemHealth.redis.status) as any}
-                      size="small"
-                    />
-                  </ListItem>
-                  
-                  <ListItem>
-                    <ListItemAvatar>
-                      <Avatar sx={{ bgcolor: `${getHealthColor(systemHealth.storage.status)}.main` }}>
-                        {getHealthIcon(systemHealth.storage.status)}
-                      </Avatar>
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary="File Storage"
-                      secondary={`${systemHealth.storage.usedSpace}GB / ${systemHealth.storage.totalSpace}GB`}
-                    />
-                    <Chip
-                      label={systemHealth.storage.status}
-                      color={getHealthColor(systemHealth.storage.status) as any}
-                      size="small"
-                    />
-                  </ListItem>
+              <Button
+                component={Link}
+                href="/orders"
+                endIcon={<ChevronRight />}
+                sx={{ textTransform: 'none', fontWeight: 700, color: brand.purple }}
+              >
+                All orders
+              </Button>
+            </Box>
 
-                  <ListItem>
-                    <ListItemAvatar>
-                      <Avatar sx={{ bgcolor: 'success.main' }}>
-                        {getHealthIcon('healthy')}
-                      </Avatar>
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary="Email Service"
-                      secondary="Mail delivery system"
-                    />
-                    <Chip
-                      label="healthy"
-                      color="success"
-                      size="small"
-                    />
-                  </ListItem>
-                </List>
-              ) : (
-                <Alert severity="warning">
-                  Unable to load system health data
-                </Alert>
-              )}
-            </CardContent>
-          </Card>
+            {oldestLoading ? (
+              [0, 1, 2].map((i) => <Skeleton key={i} variant="text" height={44} />)
+            ) : !oldest?.results?.length ? (
+              <Typography sx={{ fontSize: 14, color: brand.body }}>
+                No open orders.
+              </Typography>
+            ) : (
+              oldest.results.map((order: any) => (
+                <Box
+                  key={order.id}
+                  component={Link}
+                  href={`/orders/${order.id}`}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 2,
+                    py: 1.25,
+                    borderBottom: `1px solid ${brand.line}`,
+                    textDecoration: 'none',
+                    '&:last-of-type': { borderBottom: 0 },
+                  }}
+                >
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography
+                      sx={{
+                        fontSize: 14,
+                        fontWeight: 600,
+                        color: brand.ink,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {order.title}
+                    </Typography>
+                    <Typography sx={{ fontSize: 12.5, color: brand.body }}>
+                      {personName(order.user) || 'Unknown'}
+                      {order.created_at &&
+                        ` · placed ${formatDistanceToNow(new Date(order.created_at), {
+                          addSuffix: true,
+                        })}`}
+                    </Typography>
+                  </Box>
+                  <Chip
+                    size="small"
+                    label={order.price != null ? `$${order.price}` : 'No cost set'}
+                    sx={{
+                      flexShrink: 0,
+                      bgcolor: order.price != null ? `${accents.done}1a` : `${accents.pending}1a`,
+                      color: order.price != null ? accents.done : accents.pending,
+                      fontWeight: 700,
+                    }}
+                  />
+                </Box>
+              ))
+            )}
+          </Box>
         </Grid>
 
-        {/* Recent Activity */}
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                System Activity (Last 7 Days)
+        <Grid item xs={12} md={5}>
+          <Box sx={{ ...panelSx, p: 3, height: '100%' }}>
+            <Typography sx={{ fontSize: 16, fontWeight: 700, color: brand.ink, mb: 2 }}>
+              Reviews to approve
+            </Typography>
+            {reviewsLoading ? (
+              [0, 1].map((i) => <Skeleton key={i} variant="text" height={44} />)
+            ) : reviewRows.length === 0 ? (
+              <Typography sx={{ fontSize: 14, color: brand.body }}>
+                No reviews are waiting for approval. Reviews stay hidden from the
+                public site until you approve them.
               </Typography>
-              {activityLoading ? (
-                <Box>
-                  {Array.from({ length: 5 }).map((_, index) => (
-                    <Box key={index} sx={{ mb: 2 }}>
-                      <Skeleton variant="text" width="40%" />
-                      <Skeleton variant="rectangular" width="100%" height={8} sx={{ mt: 1 }} />
-                    </Box>
-                  ))}
+            ) : (
+              reviewRows.slice(0, 5).map((review: any) => (
+                <Box
+                  key={review.id}
+                  sx={{ py: 1.25, borderBottom: `1px solid ${brand.line}`, '&:last-of-type': { borderBottom: 0 } }}
+                >
+                  <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: brand.ink }}>
+                    {personName(review.student) || 'Unknown'} · {review.rating}★
+                  </Typography>
+                  <Typography
+                    sx={{
+                      fontSize: 12.5,
+                      color: brand.body,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {review.comment}
+                  </Typography>
                 </Box>
-              ) : userActivity && userActivity.length > 0 ? (
-                <Box>
-                  {userActivity.slice(0, 7).map((activity, index) => (
-                    <Box key={index} sx={{ mb: 2 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                        <Typography variant="body2">
-                          {format(new Date(activity.date), 'MMM dd')}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {activity.logins} logins, {activity.orders} orders
-                        </Typography>
-                      </Box>
-                      <LinearProgress
-                        variant="determinate"
-                        value={Math.min((activity.logins / 100) * 100, 100)}
-                        sx={{ height: 6, borderRadius: 3 }}
-                      />
-                    </Box>
-                  ))}
-                </Box>
-              ) : (
-                <Alert severity="info">
-                  No activity data available
-                </Alert>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Key Metrics */}
-        <Grid item xs={12}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Key Performance Indicators
-              </Typography>
-              {statsLoading ? (
-                <Grid container spacing={3}>
-                  {Array.from({ length: 4 }).map((_, index) => (
-                    <Grid item xs={12} sm={6} md={3} key={index}>
-                      <Paper sx={{ p: 2, textAlign: 'center' }}>
-                        <Skeleton variant="circular" width={48} height={48} sx={{ mx: 'auto', mb: 1 }} />
-                        <Skeleton variant="text" width="80%" sx={{ mx: 'auto' }} />
-                        <Skeleton variant="text" width="60%" sx={{ mx: 'auto' }} />
-                      </Paper>
-                    </Grid>
-                  ))}
-                </Grid>
-              ) : dashboardStats ? (
-                <Grid container spacing={3}>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.50' }}>
-                      <Avatar sx={{ bgcolor: 'primary.main', mx: 'auto', mb: 1 }}>
-                        <People />
-                      </Avatar>
-                      <Typography variant="h5" color="primary.main">
-                        12.3%
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        User Growth Rate
-                      </Typography>
-                    </Paper>
-                  </Grid>
-
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'success.50' }}>
-                      <Avatar sx={{ bgcolor: 'success.main', mx: 'auto', mb: 1 }}>
-                        <Assignment />
-                      </Avatar>
-                      <Typography variant="h5" color="success.main">
-                        89.5%
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Order Completion Rate
-                      </Typography>
-                    </Paper>
-                  </Grid>
-
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'info.50' }}>
-                      <Avatar sx={{ bgcolor: 'info.main', mx: 'auto', mb: 1 }}>
-                        <AttachMoney />
-                      </Avatar>
-                      <Typography variant="h5" color="info.main">
-                        $245
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Average Order Value
-                      </Typography>
-                    </Paper>
-                  </Grid>
-
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'warning.50' }}>
-                      <Avatar sx={{ bgcolor: 'warning.main', mx: 'auto', mb: 1 }}>
-                        <TrendingUp />
-                      </Avatar>
-                      <Typography variant="h5" color="warning.main">
-                        4.7
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Customer Satisfaction
-                      </Typography>
-                    </Paper>
-                  </Grid>
-                </Grid>
-              ) : (
-                <Alert severity="warning">
-                  Unable to load dashboard statistics
-                </Alert>
-              )}
-            </CardContent>
-          </Card>
+              ))
+            )}
+          </Box>
         </Grid>
       </Grid>
     </Box>

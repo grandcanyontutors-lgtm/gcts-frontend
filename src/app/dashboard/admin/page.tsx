@@ -11,10 +11,8 @@ import {
   Dashboard as DashboardIcon,
   People,
   Assignment,
-  AttachMoney,
+  Groups,
   PendingActions,
-  Settings,
-  Analytics,
   Article,
   RateReview,
 } from '@mui/icons-material';
@@ -25,9 +23,7 @@ import { AdminOverviewTab } from '@/components/dashboard/AdminOverviewTab';
 import { UserManagementTab } from '@/components/dashboard/UserManagementTab';
 import { OrderManagementTab } from '@/components/dashboard/OrderManagementTab';
 import { PapersManagementTab } from '@/components/dashboard/PapersManagementTab';
-import { SystemAnalyticsTab } from '@/components/dashboard/SystemAnalyticsTab';
 import { ReviewModerationTab } from '@/components/dashboard/ReviewModerationTab';
-import { SystemSettingsTab } from '@/components/dashboard/SystemSettingsTab';
 import { StatTile } from '@/components/dashboard/StatTile';
 import { useGetDashboardStatsQuery } from '@/store/api/adminApi';
 import { useGetUserStatsQuery } from '@/store/api/userApi';
@@ -81,7 +77,10 @@ function AdminDashboard() {
             <StatTile icon={<PendingActions />} label="Active Orders" color={accents.pending} loading={dashboardLoading} value={dashboardStats?.activeOrders ?? 0} />
           </Grid>
           <Grid item xs={6} md={3}>
-            <StatTile icon={<AttachMoney />} label="Revenue" color={accents.done} loading={dashboardLoading} value={`$${dashboardStats?.totalRevenue ?? 0}`} />
+            {/* Not revenue: payment happens off-site and nothing in the system
+                records receipts, so totalRevenue is structurally always $0.
+                Writers on the bench is a number an admin can act on. */}
+            <StatTile icon={<Groups />} label="Writers" color={accents.done} loading={userStatsLoading} value={userStats?.usersByRole?.writer ?? 0} />
           </Grid>
         </Grid>
 
@@ -117,8 +116,6 @@ function AdminDashboard() {
             <Tab label="Orders" icon={<Assignment />} iconPosition="start" />
             <Tab label="Papers" icon={<Article />} iconPosition="start" />
             <Tab label="Reviews" icon={<RateReview />} iconPosition="start" />
-            <Tab label="Analytics" icon={<Analytics />} iconPosition="start" />
-            <Tab label="Settings" icon={<Settings />} iconPosition="start" />
           </Tabs>
         </Box>
 
@@ -127,8 +124,6 @@ function AdminDashboard() {
         <TabPanel value={tabValue} index={2}><OrderManagementTab /></TabPanel>
         <TabPanel value={tabValue} index={3}><PapersManagementTab /></TabPanel>
         <TabPanel value={tabValue} index={4}><ReviewModerationTab /></TabPanel>
-        <TabPanel value={tabValue} index={5}><SystemAnalyticsTab /></TabPanel>
-        <TabPanel value={tabValue} index={6}><SystemSettingsTab /></TabPanel>
       </Container>
     </PageShell>
   );

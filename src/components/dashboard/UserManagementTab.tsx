@@ -62,7 +62,9 @@ export function UserManagementTab() {
     filters: {
       search: searchTerm || undefined,
       role: roleFilter !== 'all' ? [roleFilter] : undefined,
-      isActive: statusFilter !== 'all' ? statusFilter === 'active' : undefined,
+      // snake_case — `isActive` was accepted and ignored, so the status filter
+      // silently did nothing.
+      is_active: statusFilter !== 'all' ? statusFilter === 'active' : undefined,
     },
   });
 
