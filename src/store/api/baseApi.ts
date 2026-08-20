@@ -165,7 +165,16 @@ export interface FilterableQuery<TFilters = {}> extends PaginationParams {
 // Utility function to build query parameters
 export const buildQueryParams = (params: Record<string, any>): string => {
   const searchParams = new URLSearchParams();
-  
+
+  // Two paginators are in play: StandardPagination reads `page_size`, while
+  // DefaultPagination reads `pageSize`. Sending only the camelCase form meant
+  // every StandardPagination endpoint silently ignored the requested size and
+  // returned its default 20. Emitting both lets each paginator find its own
+  // parameter; the other is simply unused.
+  if (params.pageSize !== undefined && params.page_size === undefined) {
+    params = { ...params, page_size: params.pageSize };
+  }
+
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== '') {
       if (Array.isArray(value)) {

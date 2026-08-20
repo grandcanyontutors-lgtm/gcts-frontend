@@ -2,508 +2,240 @@
 
 import {
   Box,
-  Typography,
+  Button,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControl,
+  FormControlLabel,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  Pagination,
+  Paper,
+  Select,
+  Skeleton,
+  Switch,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
-  Chip,
-  IconButton,
-  Button,
-  Menu,
-  MenuItem,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  Skeleton,
-  Alert,
-  Pagination,
   Tooltip,
-  Checkbox,
-  FormControlLabel,
-  Grid,
-  Card,
-  CardContent,
-  Divider,
-  Stack,
+  Typography,
+  Alert,
 } from '@mui/material';
-import {
-  MoreVert,
-  Edit,
-  Delete,
-  Add,
-  Search,
-  FilterList,
-  ContentCopy,
-  Visibility,
-  VisibilityOff,
-  Star,
-  StarBorder,
-  Download,
-  FileUpload,
-} from '@mui/icons-material';
-import { RichTextEditor } from '@/components/common/RichTextEditor';
-import { PaperAccessManager } from '@/components/dashboard/PaperAccessManager';
-import { useState } from 'react';
+import { Add, Delete, Edit, Search } from '@mui/icons-material';
+import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import {
   useGetAdminPapersQuery,
   useCreatePaperMutation,
   useUpdatePaperMutation,
   useDeletePaperMutation,
-  useDuplicatePaperMutation,
-  useBulkActionPapersMutation,
+  useGetPaperSubjectsQuery,
   type AdminPaper,
-  type CreatePaperData,
-  type UpdatePaperData,
 } from '@/store/api/papersApi';
+import { brand, accents, panelSx } from '@/lib/brand';
 
-interface PaperFormData {
-  title: string;
-  subject: string;
-  type: string;
-  level: string;
-  pages: number;
-  excerpt: string;
-  content: string;
-  author: string;
-  keywords: string;
-  is_published: boolean;
-  featured: boolean;
-  meta_description: string;
-}
+const PAGE_SIZE = 10;
 
-const initialFormData: PaperFormData = {
-  title: '',
-  subject: '',
-  type: '',
-  level: '',
-  pages: 1,
-  excerpt: '',
-  content: '',
-  author: '',
-  keywords: '',
-  is_published: false,
-  featured: false,
-  meta_description: '',
-};
+const EMPTY_FORM = { title: '', content: '', subject_id: '', is_open: false };
 
+/**
+ * Sample papers.
+ *
+ * The previous version of this tab was written against a model that does not
+ * exist — it listed Type, Level, Downloads and a Published/Draft status, and
+ * offered Duplicate and five bulk actions. `Paper` has none of those fields and
+ * the API has neither of those routes; the list itself called `/admin/papers/`,
+ * which 404s, so nothing ever arrived to contradict it. Pointed at real data it
+ * crashed outright, rendering the nested `subject` object as a React child.
+ *
+ * What is left is the model as it exists, and the one editorial decision the
+ * product actually defines: whether a paper is fully open or shows an excerpt
+ * until an admin accepts an access request.
+ */
 export function PapersManagementTab() {
-  // State for pagination and filtering
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(10);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filters, setFilters] = useState({
-    is_published: undefined as boolean | undefined,
-    featured: undefined as boolean | undefined,
-    subject: '',
-    type: '',
-    level: '',
-  });
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
+  const [editing, setEditing] = useState<AdminPaper | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [deleting, setDeleting] = useState<AdminPaper | null>(null);
+  const [error, setError] = useState('');
 
-  // State for dialogs and forms
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedPaper, setSelectedPaper] = useState<AdminPaper | null>(null);
-  const [formData, setFormData] = useState<PaperFormData>(initialFormData);
+  useEffect(() => {
+    const timer = setTimeout(() => setSearch(searchInput.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
-  // State for bulk operations
-  const [selectedPapers, setSelectedPapers] = useState<string[]>([]);
-  const [bulkMenuAnchor, setBulkMenuAnchor] = useState<null | HTMLElement>(null);
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
 
-  // State for individual paper actions
-  const [paperMenuAnchor, setPaperMenuAnchor] = useState<null | HTMLElement>(null);
-  const [menuPaper, setMenuPaper] = useState<AdminPaper | null>(null);
-
-  // Fetch papers data
-  const { data: papersData, isLoading, error, refetch } = useGetAdminPapersQuery({
+  const { data, isLoading, isFetching } = useGetAdminPapersQuery({
     page,
-    page_size: pageSize,
-    search: searchTerm || undefined,
-    ...filters,
+    page_size: PAGE_SIZE,
+    search: search || undefined,
   });
+  const { data: subjects = [] } = useGetPaperSubjectsQuery();
 
-  // Mutations
-  const [createPaper, { isLoading: isCreating }] = useCreatePaperMutation();
-  const [updatePaper, { isLoading: isUpdating }] = useUpdatePaperMutation();
-  const [deletePaper, { isLoading: isDeleting }] = useDeletePaperMutation();
-  const [duplicatePaper, { isLoading: isDuplicating }] = useDuplicatePaperMutation();
-  const [bulkActionPapers, { isLoading: isBulkActing }] = useBulkActionPapersMutation();
+  const [createPaper, { isLoading: creating }] = useCreatePaperMutation();
+  const [updatePaper, { isLoading: updating }] = useUpdatePaperMutation();
+  const [deletePaper, { isLoading: removing }] = useDeletePaperMutation();
 
-  const papers = papersData?.results || [];
-  const totalPages = papersData ? Math.ceil(papersData.count / pageSize) : 0;
+  const papers = data?.results ?? [];
+  const pageCount = Math.ceil((data?.count ?? 0) / PAGE_SIZE);
 
-  // Handle form changes
-  const handleFormChange = (field: keyof PaperFormData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const openCreate = () => {
+    setEditing(null);
+    setForm(EMPTY_FORM);
+    setError('');
+    setDialogOpen(true);
   };
 
-  // Handle paper creation
-  const handleCreatePaper = async () => {
-    try {
-      const keywords = formData.keywords ? formData.keywords.split(',').map(k => k.trim()) : undefined;
-      const createData: CreatePaperData = {
-        ...formData,
-        keywords,
-        meta_description: formData.meta_description || undefined,
-        author: formData.author || undefined,
-      };
-      await createPaper(createData).unwrap();
-      setCreateDialogOpen(false);
-      setFormData(initialFormData);
-    } catch (error) {
-      console.error('Failed to create paper:', error);
-    }
-  };
-
-  // Handle paper editing
-  const handleEditPaper = async () => {
-    if (!selectedPaper) return;
-
-    try {
-      const keywords = formData.keywords ? formData.keywords.split(',').map(k => k.trim()) : undefined;
-      const updateData: UpdatePaperData = {
-        id: selectedPaper.id,
-        ...formData,
-        keywords,
-        meta_description: formData.meta_description || undefined,
-        author: formData.author || undefined,
-      };
-      await updatePaper(updateData).unwrap();
-      setEditDialogOpen(false);
-      setSelectedPaper(null);
-      setFormData(initialFormData);
-    } catch (error) {
-      console.error('Failed to update paper:', error);
-    }
-  };
-
-  // Handle paper deletion
-  const handleDeletePaper = async () => {
-    if (!selectedPaper) return;
-
-    try {
-      await deletePaper(selectedPaper.id).unwrap();
-      setDeleteDialogOpen(false);
-      setSelectedPaper(null);
-    } catch (error) {
-      console.error('Failed to delete paper:', error);
-    }
-  };
-
-  // Handle paper duplication
-  const handleDuplicatePaper = async (paperId: string) => {
-    try {
-      await duplicatePaper(paperId).unwrap();
-      setPaperMenuAnchor(null);
-      setMenuPaper(null);
-    } catch (error) {
-      console.error('Failed to duplicate paper:', error);
-    }
-  };
-
-  // Handle bulk actions
-  const handleBulkAction = async (action: 'delete' | 'publish' | 'unpublish' | 'feature' | 'unfeature') => {
-    if (selectedPapers.length === 0) return;
-
-    try {
-      await bulkActionPapers({ ids: selectedPapers, action }).unwrap();
-      setSelectedPapers([]);
-      setBulkMenuAnchor(null);
-    } catch (error) {
-      console.error('Failed to perform bulk action:', error);
-    }
-  };
-
-  // Open edit dialog with paper data
-  const openEditDialog = (paper: AdminPaper) => {
-    setSelectedPaper(paper);
-    setFormData({
+  const openEdit = (paper: AdminPaper) => {
+    setEditing(paper);
+    setForm({
       title: paper.title,
-      subject: paper.subject,
-      type: paper.type,
-      level: paper.level,
-      pages: paper.pages,
-      excerpt: paper.excerpt,
-      content: paper.content,
-      author: paper.author || '',
-      keywords: paper.keywords?.join(', ') || '',
-      is_published: paper.is_published,
-      featured: paper.featured,
-      meta_description: paper.meta_description || '',
+      content: paper.content ?? '',
+      subject_id: paper.subject?.id ?? '',
+      is_open: paper.is_open,
     });
-    setEditDialogOpen(true);
-    setPaperMenuAnchor(null);
-    setMenuPaper(null);
+    setError('');
+    setDialogOpen(true);
   };
 
-  // Open delete dialog
-  const openDeleteDialog = (paper: AdminPaper) => {
-    setSelectedPaper(paper);
-    setDeleteDialogOpen(true);
-    setPaperMenuAnchor(null);
-    setMenuPaper(null);
-  };
-
-  // Handle checkbox selection
-  const handleSelectPaper = (paperId: string, checked: boolean) => {
-    if (checked) {
-      setSelectedPapers(prev => [...prev, paperId]);
-    } else {
-      setSelectedPapers(prev => prev.filter(id => id !== paperId));
+  const handleSave = async () => {
+    setError('');
+    try {
+      if (editing) {
+        await updatePaper({ id: editing.id, ...form }).unwrap();
+      } else {
+        await createPaper(form).unwrap();
+      }
+      setDialogOpen(false);
+    } catch (e: any) {
+      setError(e?.data?.message || e?.data?.detail || 'Could not save the paper.');
     }
   };
 
-  // Handle select all
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedPapers(papers.map(paper => paper.id));
-    } else {
-      setSelectedPapers([]);
+  const handleDelete = async () => {
+    if (!deleting) return;
+    try {
+      await deletePaper(deleting.id).unwrap();
+      setDeleting(null);
+    } catch (e: any) {
+      setError(e?.data?.message || 'Could not delete the paper.');
     }
   };
 
   return (
     <Box>
-      {/* Access requests + open/excerpt visibility (real /userpapers/ + /papers/ endpoints) */}
-      <PaperAccessManager />
-
-      {/* Header with actions */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5" component="h2">
-          Papers Management
+      <Box
+        sx={{
+          display: 'flex',
+          gap: 1.5,
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          mb: 2.5,
+        }}
+      >
+        <TextField
+          size="small"
+          placeholder="Search papers"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          inputProps={{ 'aria-label': 'Search papers' }}
+          InputProps={{ startAdornment: <Search sx={{ mr: 1, fontSize: 20, color: brand.body }} /> }}
+          sx={{ flex: '1 1 260px', maxWidth: 380 }}
+        />
+        <Box sx={{ flexGrow: 1 }} />
+        <Typography sx={{ fontSize: 14, fontWeight: 600, color: brand.body }}>
+          {isLoading ? 'Loading…' : `${data?.count ?? 0} papers`}
         </Typography>
         <Button
           variant="contained"
           startIcon={<Add />}
-          onClick={() => setCreateDialogOpen(true)}
+          onClick={openCreate}
+          sx={{ textTransform: 'none', fontWeight: 700, bgcolor: brand.purple }}
         >
-          Add New Paper
+          New paper
         </Button>
       </Box>
 
-      {/* Stats Cards */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Total Papers
-              </Typography>
-              <Typography variant="h4">
-                {papersData?.count || 0}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Published
-              </Typography>
-              <Typography variant="h4">
-                {papers.filter(p => p.is_published).length}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Featured
-              </Typography>
-              <Typography variant="h4">
-                {papers.filter(p => p.featured).length}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Total Downloads
-              </Typography>
-              <Typography variant="h4">
-                {papers.reduce((sum, p) => sum + p.download_count, 0)}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+      {error && !dialogOpen && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+          {error}
+        </Alert>
+      )}
 
-      {/* Filters and Search */}
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={4}>
-            <TextField
-              fullWidth
-              size="small"
-              placeholder="Search papers..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} />,
-              }}
-            />
-          </Grid>
-          <Grid item xs={6} md={2}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={filters.is_published ?? ''}
-                onChange={(e) => setFilters(prev => ({
-                  ...prev,
-                  is_published: e.target.value === '' ? undefined : e.target.value === 'true'
-                }))}
-                label="Status"
-              >
-                <MenuItem value="">All</MenuItem>
-                <MenuItem value="true">Published</MenuItem>
-                <MenuItem value="false">Draft</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={6} md={2}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Featured</InputLabel>
-              <Select
-                value={filters.featured ?? ''}
-                onChange={(e) => setFilters(prev => ({
-                  ...prev,
-                  featured: e.target.value === '' ? undefined : e.target.value === 'true'
-                }))}
-                label="Featured"
-              >
-                <MenuItem value="">All</MenuItem>
-                <MenuItem value="true">Featured</MenuItem>
-                <MenuItem value="false">Not Featured</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          {selectedPapers.length > 0 && (
-            <Grid item xs={12} md={4}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography variant="body2">
-                  {selectedPapers.length} selected
-                </Typography>
-                <Button
-                  size="small"
-                  onClick={(e) => setBulkMenuAnchor(e.currentTarget)}
-                  disabled={isBulkActing}
-                >
-                  Bulk Actions
-                </Button>
-              </Box>
-            </Grid>
-          )}
-        </Grid>
-      </Paper>
-
-      {/* Papers Table */}
-      <TableContainer component={Paper}>
-        <Table>
+      <TableContainer component={Paper} sx={{ ...panelSx, overflowX: 'auto' }}>
+        <Table sx={{ minWidth: 640 }}>
           <TableHead>
-            <TableRow>
-              <TableCell padding="checkbox">
-                <Checkbox
-                  checked={selectedPapers.length === papers.length && papers.length > 0}
-                  indeterminate={selectedPapers.length > 0 && selectedPapers.length < papers.length}
-                  onChange={(e) => handleSelectAll(e.target.checked)}
-                />
-              </TableCell>
-              <TableCell>Title</TableCell>
-              <TableCell>Subject</TableCell>
-              <TableCell>Type</TableCell>
-              <TableCell>Level</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Downloads</TableCell>
-              <TableCell>Created</TableCell>
-              <TableCell>Actions</TableCell>
+            <TableRow sx={{ bgcolor: brand.paper }}>
+              <TableCell sx={{ fontWeight: 700 }}>Title</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>Subject</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>Access</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>Added</TableCell>
+              <TableCell align="right" />
             </TableRow>
           </TableHead>
           <TableBody>
-            {isLoading ? (
-              Array.from({ length: pageSize }).map((_, index) => (
-                <TableRow key={index}>
-                  <TableCell><Skeleton width={24} height={24} /></TableCell>
-                  <TableCell><Skeleton /></TableCell>
-                  <TableCell><Skeleton /></TableCell>
-                  <TableCell><Skeleton /></TableCell>
-                  <TableCell><Skeleton /></TableCell>
-                  <TableCell><Skeleton /></TableCell>
-                  <TableCell><Skeleton /></TableCell>
-                  <TableCell><Skeleton /></TableCell>
-                  <TableCell><Skeleton /></TableCell>
+            {isLoading || isFetching ? (
+              Array.from({ length: 5 }).map((_, row) => (
+                <TableRow key={row}>
+                  {Array.from({ length: 5 }).map((__, cell) => (
+                    <TableCell key={cell}>
+                      <Skeleton />
+                    </TableCell>
+                  ))}
                 </TableRow>
               ))
             ) : papers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} align="center">
-                  <Typography variant="body2" color="text.secondary">
-                    No papers found
-                  </Typography>
+                <TableCell colSpan={5} align="center" sx={{ py: 5, color: brand.body }}>
+                  No papers yet.
                 </TableCell>
               </TableRow>
             ) : (
               papers.map((paper) => (
                 <TableRow key={paper.id} hover>
-                  <TableCell padding="checkbox">
-                    <Checkbox
-                      checked={selectedPapers.includes(paper.id)}
-                      onChange={(e) => handleSelectPaper(paper.id, e.target.checked)}
-                    />
+                  <TableCell sx={{ fontWeight: 600, color: brand.ink }}>{paper.title}</TableCell>
+                  <TableCell sx={{ color: brand.body }}>
+                    {paper.subject?.title ?? '—'}
                   </TableCell>
-                  <TableCell>
-                    <Box>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 'medium' }}>
-                        {paper.title}
-                      </Typography>
-                      {paper.featured && (
-                        <Chip size="small" label="Featured" color="primary" sx={{ mt: 0.5 }} />
-                      )}
-                    </Box>
-                  </TableCell>
-                  <TableCell>{paper.subject}</TableCell>
-                  <TableCell>{paper.type}</TableCell>
-                  <TableCell>{paper.level}</TableCell>
                   <TableCell>
                     <Chip
                       size="small"
-                      label={paper.is_published ? 'Published' : 'Draft'}
-                      color={paper.is_published ? 'success' : 'default'}
+                      label={paper.is_open ? 'Open' : 'Excerpt only'}
+                      sx={{
+                        fontWeight: 700,
+                        bgcolor: paper.is_open ? `${accents.done}1a` : `${accents.pending}1a`,
+                        color: paper.is_open ? accents.done : accents.pending,
+                      }}
                     />
                   </TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <Download sx={{ fontSize: 16 }} />
-                      {paper.download_count}
-                    </Box>
+                  <TableCell sx={{ color: brand.body }}>
+                    {paper.created_at ? format(new Date(paper.created_at), 'MMM d, yyyy') : '—'}
                   </TableCell>
-                  <TableCell>
-                    {format(new Date(paper.created_at), 'MMM dd, yyyy')}
-                  </TableCell>
-                  <TableCell>
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        setPaperMenuAnchor(e.currentTarget);
-                        setMenuPaper(paper);
-                      }}
-                    >
-                      <MoreVert />
-                    </IconButton>
+                  <TableCell align="right">
+                    <Tooltip title="Edit">
+                      <IconButton size="small" onClick={() => openEdit(paper)} sx={{ color: brand.purple }}>
+                        <Edit fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete">
+                      <IconButton size="small" onClick={() => setDeleting(paper)} sx={{ color: '#c62828' }}>
+                        <Delete fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
                   </TableCell>
                 </TableRow>
               ))
@@ -512,392 +244,100 @@ export function PapersManagementTab() {
         </Table>
       </TableContainer>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
+      {pageCount > 1 && (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-          <Pagination
-            count={totalPages}
-            page={page}
-            onChange={(e, newPage) => setPage(newPage)}
-            color="primary"
-          />
+          <Pagination count={pageCount} page={page} onChange={(_, p) => setPage(p)} color="primary" />
         </Box>
       )}
 
-      {/* Paper Actions Menu */}
-      <Menu
-        anchorEl={paperMenuAnchor}
-        open={Boolean(paperMenuAnchor)}
-        onClose={() => {
-          setPaperMenuAnchor(null);
-          setMenuPaper(null);
-        }}
-      >
-        <MenuItem onClick={() => menuPaper && openEditDialog(menuPaper)}>
-          <Edit sx={{ mr: 1 }} />
-          Edit
-        </MenuItem>
-        <MenuItem onClick={() => menuPaper && handleDuplicatePaper(menuPaper.id)}>
-          <ContentCopy sx={{ mr: 1 }} />
-          Duplicate
-        </MenuItem>
-        <Divider />
-        <MenuItem
-          onClick={() => menuPaper && openDeleteDialog(menuPaper)}
-          sx={{ color: 'error.main' }}
-        >
-          <Delete sx={{ mr: 1 }} />
-          Delete
-        </MenuItem>
-      </Menu>
-
-      {/* Bulk Actions Menu */}
-      <Menu
-        anchorEl={bulkMenuAnchor}
-        open={Boolean(bulkMenuAnchor)}
-        onClose={() => setBulkMenuAnchor(null)}
-      >
-        <MenuItem onClick={() => handleBulkAction('publish')}>
-          <Visibility sx={{ mr: 1 }} />
-          Publish
-        </MenuItem>
-        <MenuItem onClick={() => handleBulkAction('unpublish')}>
-          <VisibilityOff sx={{ mr: 1 }} />
-          Unpublish
-        </MenuItem>
-        <MenuItem onClick={() => handleBulkAction('feature')}>
-          <Star sx={{ mr: 1 }} />
-          Feature
-        </MenuItem>
-        <MenuItem onClick={() => handleBulkAction('unfeature')}>
-          <StarBorder sx={{ mr: 1 }} />
-          Unfeature
-        </MenuItem>
-        <Divider />
-        <MenuItem
-          onClick={() => handleBulkAction('delete')}
-          sx={{ color: 'error.main' }}
-        >
-          <Delete sx={{ mr: 1 }} />
-          Delete
-        </MenuItem>
-      </Menu>
-
-      {/* Create Paper Dialog */}
-      <Dialog
-        open={createDialogOpen}
-        onClose={() => setCreateDialogOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>Create New Paper</DialogTitle>
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>{editing ? 'Edit paper' : 'New paper'}</DialogTitle>
         <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Title"
-                value={formData.title}
-                onChange={(e) => handleFormChange('title', e.target.value)}
-                required
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+          <TextField
+            fullWidth
+            label="Title"
+            margin="normal"
+            value={form.title}
+            onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+          />
+          <FormControl fullWidth margin="normal">
+            <InputLabel id="paper-subject-label">Subject</InputLabel>
+            <Select
+              labelId="paper-subject-label"
+              label="Subject"
+              value={form.subject_id}
+              onChange={(e) => setForm((f) => ({ ...f, subject_id: e.target.value }))}
+            >
+              {subjects.map((subject) => (
+                <MenuItem key={subject.id} value={subject.id}>
+                  {subject.title}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <TextField
+            fullWidth
+            multiline
+            minRows={8}
+            label="Content"
+            margin="normal"
+            value={form.content}
+            onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
+          />
+          <FormControlLabel
+            sx={{ mt: 1 }}
+            control={
+              <Switch
+                checked={form.is_open}
+                onChange={(e) => setForm((f) => ({ ...f, is_open: e.target.checked }))}
+                sx={{ '& .Mui-checked': { color: brand.purple } }}
               />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="Subject"
-                value={formData.subject}
-                onChange={(e) => handleFormChange('subject', e.target.value)}
-                required
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="Type"
-                value={formData.type}
-                onChange={(e) => handleFormChange('type', e.target.value)}
-                required
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="Level"
-                value={formData.level}
-                onChange={(e) => handleFormChange('level', e.target.value)}
-                required
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="Pages"
-                type="number"
-                value={formData.pages}
-                onChange={(e) => handleFormChange('pages', parseInt(e.target.value) || 1)}
-                required
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Author"
-                value={formData.author}
-                onChange={(e) => handleFormChange('author', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Keywords (comma-separated)"
-                value={formData.keywords}
-                onChange={(e) => handleFormChange('keywords', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Excerpt"
-                multiline
-                rows={3}
-                value={formData.excerpt}
-                onChange={(e) => handleFormChange('excerpt', e.target.value)}
-                required
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Meta Description"
-                multiline
-                rows={2}
-                value={formData.meta_description}
-                onChange={(e) => handleFormChange('meta_description', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <RichTextEditor
-                label="Content"
-                value={formData.content}
-                onChange={(value) => handleFormChange('content', value)}
-                required
-                placeholder="Write the paper content here..."
-                height="400px"
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={formData.is_published}
-                    onChange={(e) => handleFormChange('is_published', e.target.checked)}
-                  />
-                }
-                label="Published"
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={formData.featured}
-                    onChange={(e) => handleFormChange('featured', e.target.checked)}
-                  />
-                }
-                label="Featured"
-              />
-            </Grid>
-          </Grid>
+            }
+            label={
+              <Typography sx={{ fontSize: 13.5, color: brand.body }}>
+                {form.is_open
+                  ? 'Open — the full paper is public'
+                  : 'Excerpt only — readers must request access, which you approve'}
+              </Typography>
+            }
+          />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setCreateDialogOpen(false)}>
+          <Button onClick={() => setDialogOpen(false)} sx={{ textTransform: 'none' }}>
             Cancel
           </Button>
           <Button
-            onClick={handleCreatePaper}
             variant="contained"
-            disabled={isCreating}
+            onClick={handleSave}
+            disabled={creating || updating || !form.title.trim() || !form.subject_id}
+            sx={{ textTransform: 'none', fontWeight: 700, bgcolor: brand.purple }}
           >
-            {isCreating ? 'Creating...' : 'Create Paper'}
+            {editing ? 'Save changes' : 'Create paper'}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Edit Paper Dialog */}
-      <Dialog
-        open={editDialogOpen}
-        onClose={() => setEditDialogOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>Edit Paper</DialogTitle>
+      <Dialog open={Boolean(deleting)} onClose={() => setDeleting(null)}>
+        <DialogTitle>Delete this paper?</DialogTitle>
         <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Title"
-                value={formData.title}
-                onChange={(e) => handleFormChange('title', e.target.value)}
-                required
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="Subject"
-                value={formData.subject}
-                onChange={(e) => handleFormChange('subject', e.target.value)}
-                required
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="Type"
-                value={formData.type}
-                onChange={(e) => handleFormChange('type', e.target.value)}
-                required
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="Level"
-                value={formData.level}
-                onChange={(e) => handleFormChange('level', e.target.value)}
-                required
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="Pages"
-                type="number"
-                value={formData.pages}
-                onChange={(e) => handleFormChange('pages', parseInt(e.target.value) || 1)}
-                required
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Author"
-                value={formData.author}
-                onChange={(e) => handleFormChange('author', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Keywords (comma-separated)"
-                value={formData.keywords}
-                onChange={(e) => handleFormChange('keywords', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Excerpt"
-                multiline
-                rows={3}
-                value={formData.excerpt}
-                onChange={(e) => handleFormChange('excerpt', e.target.value)}
-                required
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Meta Description"
-                multiline
-                rows={2}
-                value={formData.meta_description}
-                onChange={(e) => handleFormChange('meta_description', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <RichTextEditor
-                label="Content"
-                value={formData.content}
-                onChange={(value) => handleFormChange('content', value)}
-                required
-                placeholder="Write the paper content here..."
-                height="400px"
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={formData.is_published}
-                    onChange={(e) => handleFormChange('is_published', e.target.checked)}
-                  />
-                }
-                label="Published"
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={formData.featured}
-                    onChange={(e) => handleFormChange('featured', e.target.checked)}
-                  />
-                }
-                label="Featured"
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEditDialogOpen(false)}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleEditPaper}
-            variant="contained"
-            disabled={isUpdating}
-          >
-            {isUpdating ? 'Updating...' : 'Update Paper'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog
-        open={deleteDialogOpen}
-        onClose={() => setDeleteDialogOpen(false)}
-        maxWidth="sm"
-      >
-        <DialogTitle>Delete Paper</DialogTitle>
-        <DialogContent>
-          <Typography>
-            Are you sure you want to delete "{selectedPaper?.title}"? This action cannot be undone.
+          <Typography sx={{ fontSize: 14.5, color: brand.body }}>
+            “{deleting?.title}” will be removed permanently.
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>
+          <Button onClick={() => setDeleting(null)} sx={{ textTransform: 'none' }}>
             Cancel
           </Button>
-          <Button
-            onClick={handleDeletePaper}
-            color="error"
-            variant="contained"
-            disabled={isDeleting}
-          >
-            {isDeleting ? 'Deleting...' : 'Delete'}
+          <Button color="error" variant="contained" onClick={handleDelete} disabled={removing} sx={{ textTransform: 'none' }}>
+            Delete
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Error Alert */}
-      {error && (
-        <Alert severity="error" sx={{ mt: 2 }}>
-          Failed to load papers. Please try again.
-        </Alert>
-      )}
     </Box>
   );
 }

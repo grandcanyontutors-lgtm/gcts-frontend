@@ -5,12 +5,19 @@ import type {
   PaginatedResponse
 } from '@/types/api';
 
+/**
+ * Mirrors `UserFilterSet` in the backend (`api/filters.py`).
+ *
+ * snake_case, because these are sent as query parameters verbatim: a camelCase
+ * key is accepted by the server and silently discarded, which looks exactly
+ * like "no results". `role` is derived from the Django permission flags
+ * server-side rather than being a column.
+ */
 export interface UserFilters {
   role?: string[];
-  isActive?: boolean;
-  isVerified?: boolean;
-  joinedAfter?: string;
-  joinedBefore?: string;
+  is_active?: boolean;
+  joined_after?: string;
+  joined_before?: string;
   search?: string;
 }
 
@@ -35,6 +42,20 @@ export const userApi = baseApi.injectEndpoints({
         const queryParams = { ...pagination, ...filters };
         const queryString = buildQueryParams(queryParams);
         return `/users/${queryString ? `?${queryString}` : ''}`;
+      },
+      // Without this the raw {success, data, meta} envelope is returned, so
+      // `result.results` is undefined and the admin user table renders no rows
+      // at all — even on a 200 with twelve users in the payload.
+      transformResponse: (response: any): PaginatedResponse<User> => {
+        if (response?.success && response?.data && response?.meta?.pagination) {
+          return {
+            count: response.meta.pagination.total_items,
+            next: response.meta.pagination.next_url || null,
+            previous: response.meta.pagination.previous_url || null,
+            results: response.data,
+          };
+        }
+        return response;
       },
       providesTags: (result) =>
         result?.results
@@ -233,19 +254,6 @@ export const userApi = baseApi.injectEndpoints({
       providesTags: ['DashboardStats'],
     }),
 
-    getUserActivity: builder.query<
-      Array<{
-        date: string;
-        logins: number;
-        orders: number;
-        newUsers: number;
-      }>,
-      { period?: '7d' | '30d' | '90d' }
-    >({
-      query: ({ period = '30d' }) => `/users/activity/?period=${period}`,
-      providesTags: ['DashboardStats'],
-    }),
-
     // User preferences
     getUserPreferences: builder.query<{
       theme: 'light' | 'dark' | 'system';
@@ -391,7 +399,6 @@ export const {
   useGetWriterStatsQuery,
   useUpdateWriterProfileMutation,
   useGetUserStatsQuery,
-  useGetUserActivityQuery,
   useGetUserPreferencesQuery,
   useUpdateUserPreferencesMutation,
   useBulkUpdateUsersMutation,
